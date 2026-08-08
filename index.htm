@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>செலவு பதிவேடு - Expense Diary</title>
+<meta name="description" content="Bilingual Tamil-English Daily Expense Tracker with OCR">
+<meta name="theme-color" content="#C4553A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<script>
+tailwind.config={theme:{extend:{colors:{primary:'#C4553A','primary-light':'#E8734F',secondary:'#7A8B6F',accent:'#D4A843',cream:'#FAF6F1','cream-dark':'#F0E8DD',bark:'#2D1F14','bark-muted':'#8B7355','warm-border':'#E8DDD0',sage:'#5B8C5A'}}}}
+</script>
+<style>
+:root{--bg:#FAF6F1;--fg:#2D1F14;--muted:#8B7355;--primary:#C4553A;--card:#fff;--border:#E8DDD0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Space Grotesk','Noto Sans Tamil',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100dvh}
+.ta-text{font-family:'Noto Sans Tamil','Space Grotesk',sans-serif}
+.screen{position:fixed;inset:0;transition:opacity .4s,transform .4s;z-index:1}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(20px)}
+.screen.active{opacity:1;pointer-events:auto;transform:translateY(0)}
+.tab-content{display:none;animation:fadeUp .3s ease}
+.tab-content.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.sync-dot.synced{background:#5B8C5A}
+.sync-dot.pending{background:#D4A843;animation:pulse 1.5s infinite}
+.btn-primary{background:var(--primary);color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;font-family:inherit}
+.btn-primary:active{transform:scale(.97);background:#A84830}
+.btn-secondary{background:transparent;color:var(--primary);border:2px solid var(--primary);border-radius:12px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-secondary:active{transform:scale(.97);background:rgba(196,85,58,.08)}
+.input-field{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:12px;font-size:16px;font-family:inherit;background:var(--card);color:var(--fg);transition:border-color .2s;outline:none}
+.input-field:focus{border-color:var(--primary)}
+.input-field::placeholder{color:#BBA88E}
+.card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:16px;box-shadow:0 2px 8px rgba(45,31,20,.04)}
+.modal-overlay{position:fixed;inset:0;background:rgba(45,31,20,.5);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal-sheet{background:var(--bg);border-radius:24px 24px 0 0;width:100%;max-width:500px;max-height:90dvh;overflow-y:auto;animation:slideUp .3s ease;padding:24px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.modal-handle{width:40px;height:4px;background:#D5C9BB;border-radius:2px;margin:0 auto 20px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:12px 24px;border-radius:12px;font-size:14px;font-weight:500;z-index:200;animation:fadeUp .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90vw;text-align:center;transition:all .3s}
+.toast.success{background:#5B8C5A}
+.toast.error{background:#C4553A}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 0;cursor:pointer;transition:all .2s;position:relative}
+.nav-item .material-icons-round{font-size:26px;color:var(--muted);transition:color .2s}
+.nav-item span{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;transition:color .2s}
+.nav-item.active .material-icons-round{color:var(--primary)}
+.nav-item.active span{color:var(--primary);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;top:0;left:25%;right:25%;height:3px;background:var(--primary);border-radius:0 0 4px 4px}
+.category-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid var(--border);cursor:pointer;transition:all .2s;font-size:13px;font-weight:500;white-space:nowrap}
+.category-chip.selected{border-color:var(--primary);background:rgba(196,85,58,.08);color:var(--primary)}
+.category-chip:active{transform:scale(.95)}
+.expense-item{display:flex;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);gap:12px;cursor:pointer;transition:background .15s}
+.expense-item:active{background:rgba(196,85,58,.04)}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;width:100%}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),#D4A843);border-radius:3px;transition:width .3s}
+.splash-bg{background:linear-gradient(135deg,#C4553A 0%,#D4A843 50%,#7A8B6F 100%);background-size:300% 300%;animation:gradientShift 6s ease infinite}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#D5C9BB;border-radius:2px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div id="screen-splash" class="screen splash-bg active flex flex-col items-center justify-center">
+  <div class="text-center">
+    <div class="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6"><span class="material-icons-round text-white" style="font-size:40px">book</span></div>
+    <h1 class="text-white text-3xl font-bold mb-2 ta-text">செலவு பதிவேடு</h1>
+    <p class="text-white/70 text-lg font-light">Expense Diary</p>
+    <div class="mt-8 w-48 h-1 bg-white/20 rounded-full mx-auto overflow-hidden"><div id="splash-progress" class="h-full bg-white rounded-full transition-all duration-300" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div id="screen-setup" class="screen hidden flex items-center justify-center p-6" style="background:var(--bg)">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4"><span class="material-icons-round text-primary" style="font-size:32px">person_add</span></div>
+      <h2 id="setup-title" class="text-2xl font-bold mb-1"></h2>
+      <p id="setup-subtitle" class="text-bark-muted text-sm"></p>
+    </div>
+    <div class="space-y-4">
+      <div><label id="lbl-username" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><input id="inp-username" type="text" class="input-field" autocomplete="off"></div>
+      <div><label id="lbl-password" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><input id="inp-password" type="password" class="input-field"></div>
+      <div><label id="lbl-confirm" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><input id="inp-confirm" type="password" class="input-field"></div>
+      <p id="setup-error" class="text-primary text-sm hidden"></p>
+      <button id="btn-setup" class="btn-primary mt-2"></button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-login" class="screen hidden flex items-center justify-center p-6" style="background:var(--bg)">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4"><span class="material-icons-round text-primary" style="font-size:32px">lock_open</span></div>
+      <h2 id="login-title" class="text-2xl font-bold mb-1"></h2>
+      <p id="login-subtitle" class="text-bark-muted text-sm"></p>
+    </div>
+    <div class="space-y-4">
+      <div><label id="lbl-login-pw" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><input id="inp-login-pw" type="password" class="input-field"></div>
+      <p id="login-error" class="text-primary text-sm hidden"></p>
+      <button id="btn-login" class="btn-primary mt-2"></button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-app" class="screen hidden" style="background:var(--bg)">
+  <header class="sticky top-0 z-40 px-4 pt-3 pb-2" style="background:var(--bg);border-bottom:1px solid var(--border)">
+    <div class="flex items-center justify-between max-w-lg mx-auto">
+      <div>
+        <h1 class="text-lg font-bold ta-text" id="header-title">செலவு பதிவேடு</h1>
+        <div class="flex items-center text-xs text-bark-muted mt-0.5"><span class="sync-dot synced" id="sync-dot"></span><span id="sync-text">Synced</span><span class="mx-1.5">·</span><span id="online-status">Online</span></div>
+      </div>
+      <button id="btn-lang-toggle" class="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-warm-border bg-white transition-all active:scale-95" aria-label="Toggle language"><span id="lang-label">தமிழ்</span><span class="material-icons-round" style="font-size:14px">translate</span></button>
+    </div>
+  </header>
+  <main class="max-w-lg mx-auto px-4 pb-24 pt-4" style="min-height:calc(100dvh - 120px)">
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="dash-month-label" class="text-xl font-bold"></h2>
+        <div class="flex gap-1">
+          <button id="btn-prev-month" class="w-8 h-8 rounded-full border border-warm-border flex items-center justify-center bg-white active:scale-90 transition-transform"><span class="material-icons-round" style="font-size:18px">chevron_left</span></button>
+          <button id="btn-next-month" class="w-8 h-8 rounded-full border border-warm-border flex items-center justify-center bg-white active:scale-90 transition-transform"><span class="material-icons-round" style="font-size:18px">chevron_right</span></button>
+        </div>
+      </div>
+      <div class="card mb-4" style="background:linear-gradient(135deg,#C4553A,#D4A843);border:none;color:#fff">
+        <p id="dash-total-label" class="text-sm opacity-80 mb-1"></p>
+        <p id="dash-total-amount" class="text-4xl font-bold" style="font-variant-numeric:tabular-nums">₹0</p>
+        <div class="flex gap-6 mt-3 text-sm opacity-90"><div><span id="dash-count-label">Entries:</span> <span id="dash-count" class="font-bold">0</span></div><div><span id="dash-avg-label">Avg/day:</span> <span id="dash-avg" class="font-bold">₹0</span></div></div>
+      </div>
+      <div class="card mb-4">
+        <h3 id="dash-chart-label" class="text-sm font-semibold text-bark-muted mb-3"></h3>
+        <div style="position:relative;height:220px"><canvas id="chart-categories"></canvas></div>
+        <div id="dash-chart-empty" class="text-center py-8 text-bark-muted text-sm hidden"><span class="material-icons-round mb-2" style="font-size:40px;opacity:.3">pie_chart</span><p id="dash-no-data"></p></div>
+      </div>
+      <div class="card"><h3 id="dash-trend-label" class="text-sm font-semibold text-bark-muted mb-3"></h3><div style="position:relative;height:180px"><canvas id="chart-daily"></canvas></div></div>
+    </div>
+    <div id="tab-add" class="tab-content">
+      <h2 id="add-title" class="text-xl font-bold mb-4"></h2>
+      <div class="card mb-4 cursor-pointer active:scale-[.98] transition-transform" id="ocr-trigger" role="button" tabindex="0">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0"><span class="material-icons-round text-accent" style="font-size:24px">photo_camera</span></div>
+          <div><p id="ocr-trigger-title" class="font-semibold"></p><p id="ocr-trigger-sub" class="text-sm text-bark-muted"></p></div>
+          <span class="material-icons-round text-bark-muted ml-auto">chevron_right</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="space-y-4">
+          <div><label id="lbl-amount" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-bark-muted font-semibold">₹</span><input id="inp-amount" type="number" inputmode="decimal" class="input-field pl-10" placeholder="0.00" min="0" step="0.01"></div></div>
+          <div><label id="lbl-date" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><input id="inp-date" type="date" class="input-field"></div>
+          <div><label id="lbl-category" class="block text-sm font-medium mb-2 text-bark-muted"></label><div id="category-chips" class="flex flex-wrap gap-2"></div></div>
+          <div><label id="lbl-desc" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><input id="inp-desc" type="text" class="input-field"></div>
+          <div><label id="lbl-desc-ta" class="block text-sm font-medium mb-1.5 text-bark-muted ta-text"></label><input id="inp-desc-ta" type="text" class="input-field ta-text"></div>
+          <div id="ocr-raw-container" class="hidden"><label id="lbl-ocr-raw" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><textarea id="ocr-raw-text" class="input-field text-xs" rows="3" readonly style="resize:none"></textarea></div>
+          <button id="btn-save-expense" class="btn-primary"></button>
+        </div>
+      </div>
+    </div>
+    <div id="tab-history" class="tab-content">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="hist-title" class="text-xl font-bold"></h2>
+        <div class="flex gap-1">
+          <button id="btn-hist-prev" class="w-8 h-8 rounded-full border border-warm-border flex items-center justify-center bg-white active:scale-90 transition-transform"><span class="material-icons-round" style="font-size:18px">chevron_left</span></button>
+          <button id="btn-hist-next" class="w-8 h-8 rounded-full border border-warm-border flex items-center justify-center bg-white active:scale-90 transition-transform"><span class="material-icons-round" style="font-size:18px">chevron_right</span></button>
+        </div>
+      </div>
+      <div class="flex items-center bg-white rounded-xl border border-warm-border px-3 mb-4"><span class="material-icons-round text-bark-muted" style="font-size:20px">search</span><input id="inp-search" type="text" class="flex-1 py-3 px-2 bg-transparent border-none outline-none text-sm" placeholder="Search..."></div>
+      <div id="history-list"></div>
+      <div id="history-empty" class="text-center py-12 hidden"><span class="material-icons-round mb-2" style="font-size:48px;opacity:.2">receipt_long</span><p id="hist-empty-text" class="text-bark-muted text-sm"></p></div>
+    </div>
+    <div id="tab-settings" class="tab-content">
+      <h2 id="settings-title" class="text-xl font-bold mb-4"></h2>
+      <div class="space-y-3">
+        <div class="card">
+          <div class="flex items-center gap-3 mb-3"><span class="material-icons-round text-sage" style="font-size:22px">cloud_sync</span><div><p id="set-sync-title" class="font-semibold text-sm"></p><p id="set-sync-status" class="text-xs text-bark-muted"></p></div></div>
+          <div class="flex gap-2">
+            <button id="btn-export" class="btn-secondary flex-1 text-sm py-2.5 flex items-center justify-center gap-1"><span class="material-icons-round" style="font-size:18px">upload_file</span><span id="set-export"></span></button>
+            <button id="btn-import" class="btn-secondary flex-1 text-sm py-2.5 flex items-center justify-center gap-1"><span class="material-icons-round" style="font-size:18px">download</span><span id="set-import"></span></button>
+          </div>
+          <input type="file" id="file-import" accept=".json" class="hidden">
+        </div>
+        <div class="card"><div class="flex items-center gap-3"><span class="material-icons-round text-accent" style="font-size:22px">schedule_send</span><div><p id="set-queue-title" class="font-semibold text-sm"></p><p id="set-queue-count" class="text-xs text-bark-muted"></p></div></div></div>
+        <div class="card cursor-pointer active:scale-[.98] transition-transform" id="btn-change-pw" role="button" tabindex="0"><div class="flex items-center gap-3"><span class="material-icons-round text-primary" style="font-size:22px">key</span><p id="set-changepw" class="font-semibold text-sm"></p><span class="material-icons-round text-bark-muted ml-auto">chevron_right</span></div></div>
+        <div class="card">
+          <div class="flex items-center gap-3 mb-2"><span class="material-icons-round text-bark-muted" style="font-size:22px">storage</span><p id="set-data-title" class="font-semibold text-sm"></p></div>
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="bg-cream rounded-xl p-3"><p id="set-total-entries" class="text-2xl font-bold text-primary">0</p><p id="set-entries-label" class="text-xs text-bark-muted"></p></div>
+            <div class="bg-cream rounded-xl p-3"><p id="set-total-amount" class="text-2xl font-bold text-accent">₹0</p><p id="set-amount-label" class="text-xs text-bark-muted"></p></div>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-secondary w-full text-primary flex items-center justify-center gap-2"><span class="material-icons-round" style="font-size:20px">logout</span><span id="set-logout"></span></button>
+        <p class="text-center text-xs text-bark-muted pt-2">v1.0 IndexedDB + Tesseract.js</p>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-item active" data-tab="dashboard" role="button" tabindex="0"><span class="material-icons-round">dashboard</span><span id="nav-dash"></span></div>
+    <div class="nav-item" data-tab="add" role="button" tabindex="0"><span class="material-icons-round">add_circle</span><span id="nav-add"></span></div>
+    <div class="nav-item" data-tab="history" role="button" tabindex="0"><span class="material-icons-round">history</span><span id="nav-hist"></span></div>
+    <div class="nav-item" data-tab="settings" role="button" tabindex="0"><span class="material-icons-round">settings</span><span id="nav-set"></span></div>
+  </nav>
+</div>
+
+<div id="modal-ocr" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="ocr-modal-title" class="text-lg font-bold mb-4"></h3>
+    <div id="ocr-step1">
+      <div class="grid grid-cols-2 gap-3">
+        <button id="btn-ocr-camera" class="card text-center py-6 active:scale-95 transition-transform"><span class="material-icons-round text-primary mb-2" style="font-size:36px">photo_camera</span><p id="ocr-camera-label" class="font-semibold text-sm"></p></button>
+        <button id="btn-ocr-upload" class="card text-center py-6 active:scale-95 transition-transform"><span class="material-icons-round text-accent mb-2" style="font-size:36px">attach_file</span><p id="ocr-upload-label" class="font-semibold text-sm"></p></button>
+      </div>
+      <input type="file" id="ocr-file-input" accept="image/*" capture="environment" class="hidden">
+    </div>
+    <div id="ocr-step2" class="hidden">
+      <div class="rounded-xl overflow-hidden mb-4 bg-cream-dark flex items-center justify-center" style="max-height:300px"><img id="ocr-preview-img" class="max-w-full max-h-[300px] object-contain" alt="Preview"></div>
+      <div class="flex gap-3"><button id="btn-ocr-retake" class="btn-secondary flex-1"></button><button id="btn-ocr-process" class="btn-primary flex-1"></button></div>
+    </div>
+    <div id="ocr-step3" class="hidden text-center py-8">
+      <div class="w-16 h-16 rounded-full border-4 border-warm-border border-t-primary mx-auto mb-4" style="animation:spin 1s linear infinite"></div>
+      <p id="ocr-processing-text" class="font-semibold mb-2"></p>
+      <div class="progress-bar max-w-xs mx-auto"><div id="ocr-progress-fill" class="progress-fill" style="width:0%"></div></div>
+      <p id="ocr-progress-pct" class="text-sm text-bark-muted mt-2">0%</p>
+    </div>
+    <div id="ocr-step4" class="hidden">
+      <div class="mb-3"><label id="lbl-ocr-extracted" class="block text-sm font-medium mb-1.5 text-bark-muted"></label><textarea id="ocr-extracted-text" class="input-field text-sm" rows="5" style="resize:none"></textarea></div>
+      <p id="ocr-parsed-info" class="text-xs text-bark-muted mb-3"></p>
+      <div class="flex gap-3"><button id="btn-ocr-discard" class="btn-secondary flex-1"></button><button id="btn-ocr-fill" class="btn-primary flex-1"></button></div>
+    </div>
+    <button id="btn-ocr-close" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-cream-dark flex items-center justify-center"><span class="material-icons-round text-bark-muted" style="font-size:20px">close</span></button>
+  </div>
+</div>
+
+<div id="modal-confirm" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-sheet" style="max-height:auto">
+    <div class="modal-handle"></div>
+    <h3 id="confirm-title" class="text-lg font-bold mb-2"></h3>
+    <p id="confirm-message" class="text-sm text-bark-muted mb-4" style="white-space:pre-line"></p>
+    <div class="flex gap-3"><button id="btn-confirm-cancel" class="btn-secondary flex-1"></button><button id="btn-confirm-ok" class="btn-primary flex-1"></button></div>
+  </div>
+</div>
+
+<div id="modal-changepw" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-sheet" style="max-height:auto">
+    <div class="modal-handle"></div>
+    <h3 id="changepw-title" class="text-lg font-bold mb-4"></h3>
+    <div class="space-y-3">
+      <input id="inp-old-pw" type="password" class="input-field" placeholder="Current password">
+      <input id="inp-new-pw" type="password" class="input-field" placeholder="New password">
+      <input id="inp-new-pw-confirm" type="password" class="input-field" placeholder="Confirm new password">
+      <p id="changepw-error" class="text-primary text-sm hidden"></p>
+      <button id="btn-save-pw" class="btn-primary"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var T={
+en:{appName:'Expense Diary',appNameTa:'செலவு பதிவேடு',setupTitle:'Create Master Account',setupSub:'One-time setup. This account manages all data.',username:'Username',password:'Password',confirmPw:'Confirm Password',setupBtn:'Setup Account',loginTitle:'Welcome Back',loginSub:'Enter your master password',loginBtn:'Login',errUserReq:'Username is required',errPwReq:'Password required (min 4 chars)',errPwMatch:'Passwords do not match',errSetupFail:'Setup failed',errLoginFail:'Wrong password',totalExpense:'Total Expense',entries:'Entries',avgDay:'Avg/day',byCategory:'By Category',noData:'No expenses this month',dailyTrend:'Daily Trend',addTitle:'Add Expense',ocrTitle:'Scan Diary',ocrSub:'Use camera to photograph expense entry',amount:'Amount',date:'Date',category:'Category',desc:'Description',descTa:'Description (Tamil)',ocrRaw:'OCR Raw Text',save:'Save Expense',histTitle:'History',search:'Search expenses...',emptyHist:'No expenses found',settings:'Settings',syncStatus:'Sync Status',synced:'All data saved locally',pending:'items pending sync',exportData:'Export',importData:'Import',queueTitle:'Store & Forward Queue',queueEmpty:'No pending operations',changePw:'Change Password',dataStats:'Data Statistics',totalEntries:'Total Entries',totalSpent:'Total Spent',logout:'Logout',langToggle:'தமிழ்',ocrModalTitle:'Scan Expense Entry',ocrCamera:'Camera',ocrUpload:'Upload Photo',retake:'Retake',process:'Process',processing:'Recognizing text...',fillForm:'Fill Form',discard:'Discard',extractedText:'Extracted Text (edit if needed)',parsed:'Auto-parsed: ',cancel:'Cancel',delete:'Delete',savePw:'Save Password',errOldPw:'Wrong current password',errNewPw:'New passwords do not match',pwChanged:'Password changed',saved:'Expense saved',deleted:'Expense deleted',exported:'Data exported',imported:'Data imported',errImport:'Invalid file format',errOcr:'OCR failed. Try again.',online:'Online',offline:'Offline',today:'Today',yesterday:'Yesterday',food:'Food',transport:'Transport',shopping:'Shopping',bills:'Bills',health:'Health',education:'Education',entertainment:'Entertainment',rent:'Rent',others:'Others'},
+ta:{appName:'செலவு பதிவேடு',appNameTa:'Expense Diary',setupTitle:'முதன்மை கணக்கை உருவாக்கு',setupSub:'ஒரு முறை அமைப்பு. இந்த கணக்கு அனைத்து தரவையும் நிர்வகிக்கும்.',username:'பயனர்பெயர்',password:'கடவுச்சொல்',confirmPw:'கடவுச்சொல்லை உறுதிப்படுத்து',setupBtn:'கணக்கை அமை',loginTitle:'மீண்டும் வரவேற்கிறோம்',loginSub:'உங்கள் முதன்மை கடவுச்சொல்லை உள்ளிடவும்',loginBtn:'உள்நுழை',errUserReq:'பயனர்பெயர் தேவை',errPwReq:'கடவுச்சொல் தேவை (குறைந்தது 4 எழுத்துகள்)',errPwMatch:'கடவுச்சொற்கள் பொருந்தவில்லை',errSetupFail:'அமைப்பு தோல்வி',errLoginFail:'தவறான கடவுச்சொல்',totalExpense:'மொத்த செலவு',entries:'பதிவுகள்',avgDay:'நாள்/சராசரி',byCategory:'வகை வாரியாக',noData:'இந்த மாதம் செலவுகள் இல்லை',dailyTrend:'தினசரி போக்கு',addTitle:'செலவு சேர்',ocrTitle:'பதிவேட்டை ஸ்கேன்',ocrSub:'கேமராவால் செலவு பதிவை புகைப்படம் எடுக்கவும்',amount:'தொகை',date:'தேதி',category:'வகை',desc:'விவரம்',descTa:'விவரம் (தமிழில்)',ocrRaw:'OCR மூல உரை',save:'செலவை சேமி',histTitle:'வரலாறு',search:'செலவுகளை தேடு...',emptyHist:'செலவுகள் எதுவும் கிடைக்கவில்லை',settings:'அமைப்புகள்',syncStatus:'ஒத்திசைவு நிலை',synced:'அனைத்து தரவும் உள்நாட்டில் சேமிக்கப்பட்டது',pending:'ஒத்திசைவுக்காக காத்திருக்கிறது',exportData:'ஏற்றுமதி',importData:'இறக்குமதி',queueTitle:'சேமி மற்றும் அனுப்பு வரிசை',queueEmpty:'நிலுவையில் செயல்பாடுகள் இல்லை',changePw:'கடவுச்சொல் மாற்று',dataStats:'தரவு புள்ளிவிவரம்',totalEntries:'மொத்த பதிவுகள்',totalSpent:'மொத்த செலவு',logout:'வெளியேறு',langToggle:'English',ocrModalTitle:'செலவு பதிவை ஸ்கேன்',ocrCamera:'கேமரா',ocrUpload:'புகைப்படம் பதிவேற்று',retake:'மீண்டும் எடு',process:'செயலாக்கு',processing:'உரையை அங்கீகரிக்கிறது...',fillForm:'படிவம் நிரப்பு',discard:'நிராகரி',extractedText:'பிரித்தெடுக்கப்பட்ட உரை (தேவைப்பட்டால் திருத்தவும்)',parsed:'தானாக பகுப்பாய்வு: ',cancel:'ரத்து',delete:'நீக்கு',savePw:'கடவுச்சொல் சேமி',errOldPw:'தற்போதைய கடவுச்சொல் தவறு',errNewPw:'புதிய கடவுச்சொற்கள் பொருந்தவில்லை',pwChanged:'கடவுச்சொல் மாற்றப்பட்டது',saved:'செலவு சேமிக்கப்பட்டது',deleted:'செலவு நீக்கப்பட்டது',exported:'தரவு ஏற்றுமதி செய்யப்பட்டது',imported:'தரவு வெற்றிகரமாக இறக்குமதி',errImport:'தவறான கோப்பு வடிவம்',errOcr:'OCR தோல்வி. மீண்டும் முயற்சிக்கவும்.',online:'ஆன்லைன்',offline:'ஆஃப்லைன்',today:'இன்று',yesterday:'நேற்று',food:'உணவு',transport:'போக்குவரத்து',shopping:'ஷாப்பிங்',bills:'பில்கள்',health:'சுகாதாரம்',education:'கல்வி',entertainment:'பொழுதுபோக்கு',rent:'வாடகை',others:'மற்றவை'}
+};
+
+var CATS=[
+  {id:'food',name:'food',icon:'restaurant',color:'#E8734F'},
+  {id:'transport',name:'transport',icon:'directions_car',color:'#4A90D9'},
+  {id:'shopping',name:'shopping',icon:'shopping_bag',color:'#D4A843'},
+  {id:'bills',name:'bills',icon:'receipt_long',color:'#7A8B6F'},
+  {id:'health',name:'health',icon:'local_hospital',color:'#C4553A'},
+  {id:'education',name:'education',icon:'school',color:'#6B5CE7'},
+  {id:'entertainment',name:'entertainment',icon:'movie',color:'#E85D8A'},
+  {id:'rent',name:'rent',icon:'home',color:'#45A5A5'},
+  {id:'others',name:'others',icon:'more_horiz',color:'#8B7355'}
+];
+var ME=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var MT=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
+
+var lang='en',db=null,currentUser=null,selCat='food';
+var dashM=new Date(),histM=new Date();
+var chCat=null,chDay=null,confirmCb=null,ocrImg=null;
+
+function t(k){return(T[lang]||T.en)[k]||k}
+function cn(id){var c=CATS.find(function(x){return x.id===id});return c?t(c.name):id}
+function cc(id){var c=CATS.find(function(x){return x.id===id});return c?c.color:'#8B7355'}
+function ci(id){var c=CATS.find(function(x){return x.id===id});return c?c.icon:'more_horiz'}
+function fmt(n){return'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function ml(d){return lang==='ta'?MT[d.getMonth()]+' '+d.getFullYear():ME[d.getMonth()]+' '+d.getFullYear()}
+function tds(){return new Date().toISOString().split('T')[0]}
+function gid(){return Date.now().toString(36)+'_'+Math.random().toString(36).substr(2,9)}
+
+function toast(msg,type){var el=document.createElement('div');el.className='toast '+(type||'');el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.style.opacity='0';el.style.transform='translateX(-50%) translateY(-20px)';setTimeout(function(){el.remove()},300)},2500)}
+
+function hashPw(pw){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw)).then(function(buf){return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0')}).join('')})}
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');s.classList.add('hidden')});var el=document.getElementById(id);el.classList.remove('hidden');requestAnimationFrame(function(){el.classList.add('active')})}
+
+function openDB(){return new Promise(function(res,rej){var r=indexedDB.open('ExpenseDiaryDB',2);r.onupgradeneeded=function(e){var d=e.target.result;if(!d.objectStoreNames.contains('users'))d.createObjectStore('users',{keyPath:'id'});if(!d.objectStoreNames.contains('expenses')){var s=d.createObjectStore('expenses',{keyPath:'id'});s.createIndex('date','date');s.createIndex('month','month')}if(!d.objectStoreNames.contains('syncQueue'))d.createObjectStore('syncQueue',{keyPath:'id',autoIncrement:true})};r.onsuccess=function(e){db=e.target.result;res(db)};r.onerror=function(e){rej(e.target.error)}})}
+function dbTx(s,m){return db.transaction(s,m||'readonly').objectStore(s)}
+function dbGet(s,k){return new Promise(function(r,j){var q=dbTx(s).get(k);q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})}
+function dbPut(s,v){return new Promise(function(r,j){var q=dbTx(s,'readwrite').put(v);q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})}
+function dbDel(s,k){return new Promise(function(r,j){var q=dbTx(s,'readwrite').delete(k);q.onsuccess=function(){r()};q.onerror=function(){j(q.error)}})}
+function dbAll(s){return new Promise(function(r,j){var q=dbTx(s).getAll();q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})}
+function dbIdx(s,i,v){return new Promise(function(r,j){var q=dbTx(s).index(i).getAll(v);q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})}
+
+function qOp(type,data){return dbPut('syncQueue',{type:type,data:data,timestamp:Date.now()}).then(function(){upSync()})}
+function qCnt(){return dbAll('syncQueue').then(function(a){return a.length})}
+function upSync(){var dot=document.getElementById('sync-dot'),txt=document.getElementById('sync-text'),onl=document.getElementById('online-status'),ss=document.getElementById('set-sync-status'),qc=document.getElementById('set-queue-count');onl.textContent=navigator.onLine?t('online'):t('offline');qCnt().then(function(c){if(c>0){dot.className='sync-dot pending';txt.textContent=c+' '+t('pending');if(ss)ss.textContent=c+' '+t('pending');if(qc)qc.textContent=c+' '+t('pending')}else{dot.className='sync-dot synced';txt.textContent=t('synced');if(ss)ss.textContent=t('synced');if(qc)qc.textContent=t('queueEmpty')}})}
+
+function hasMaster(){return dbAll('users').then(function(a){return a.length>0})}
+function setupMaster(un,pw){return hashPw(pw).then(function(h){return dbPut('users',{id:'master',username:un,passwordHash:h,createdAt:Date.now()})})}
+function verifyMaster(pw){return dbGet('users','master').then(function(u){if(!u)return false;return hashPw(pw).then(function(h){return h===u.passwordHash})})}
+function chgPw(op,np){return verifyMaster(op).then(function(ok){if(!ok)throw new Error(t('errOldPw'));return dbGet('users','master')}).then(function(u){return hashPw(np).then(function(h){u.passwordHash=h;return dbPut('users',u})})}
+
+function addExp(d){var e={id:gid(),date:d.date||tds(),amount:parseFloat(d.amount)||0,category:d.category||'others',description:d.description||'',descriptionTa:d.descriptionTa||'',ocrRaw:d.ocrRaw||'',synced:false,createdAt:Date.now(),updatedAt:Date.now()};e.month=e.date.substring(0,7);return dbPut('expenses',e).then(function(){return qOp('add',{id:e.id})}).then(function(){return e})}
+function delExp(id){return dbDel('expenses',id).then(function(){return qOp('delete',{id:id})})}
+function getExpMonth(ym){return dbIdx('expenses','month',ym)}
+function getAllExp(){return dbAll('expenses')}
+
+function doOCR(src){return Tesseract.createWorker('tam+eng',1,{logger:function(m){if(m.status==='recognizing text'){var p=Math.round((m.progress||0)*100);var f=document.getElementById('ocr-progress-fill');var x=document.getElementById('ocr-progress-pct');if(f)f.style.width=p+'%';if(x)x.textContent=p+'%'}},workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',langPath:'https://tessdata.projectnaptha.com/4.0.0',corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-wasm.js'}).then(function(w){return w.recognize(src).then(function(r){return w.terminate().then(function(){return r.data.text})})})}
+
+function parseOCR(txt){var amount=0,date=tds(),desc=txt.trim().substring(0,100),cat='others';var am=txt.match(/₹\s*([\d,]+\.?\d*)/i)||txt.match(/rs\.?\s*([\d,]+\.?\d*)/i)||txt.match(/(?<!\d)([\d,]+\.\d{1,2})(?!\d)/);if(am)amount=parseFloat(am[1].replace(/,/g,''));var dm=txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);if(dm){var y=dm[3].length===2?'20'+dm[3]:dm[3];date=y+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0')}var lo=txt.toLowerCase();if(/food|உணவு|சாப்பாடு|restaurant|hotel|mess|ஹோட்டல்/.test(lo))cat='food';else if(/transport|போக்குவரத்து|bus|train|auto|uber|ola|பேருந்து|ரயில்/.test(lo))cat='transport';else if(/shop|ஷாப்பிங்|purchase|buy|வாங்க/.test(lo))cat='shopping';else if(/bill|பில்|electricity|water|மின்|தண்ணீர்|recharge|ரீச்சார்ஜ்/.test(lo))cat='bills';else if(/health|சுகாதாரம்|hospital|medicine|மருத்துவம்|மருந்து|doctor/.test(lo))cat='health';else if(/education|கல்வி|school|college|பள்ளி|கல்லூரி|tuition|fee|கட்டணம்/.test(lo))cat='education';else if(/entertainment|பொழுது|movie|cinema|திரைப்படம்/.test(lo))cat='entertainment';else if(/rent|வாடகை/.test(lo))cat='rent';return{amount:amount,date:date,category:cat,description:desc,descriptionTa:''}}
+
+function applyLang(){var ids={'setup-title':'setupTitle','setup-subtitle':'setupSub','lbl-username':'username','lbl-password':'password','lbl-confirm':'confirmPw','btn-setup':'setupBtn','login-title':'loginTitle','login-subtitle':'loginSub','lbl-login-pw':'password','btn-login':'loginBtn','dash-total-label':'totalExpense','dash-count-label':'entries','dash-avg-label':'avgDay','dash-chart-label':'byCategory','dash-no-data':'noData','dash-trend-label':'dailyTrend','add-title':'addTitle','ocr-trigger-title':'ocrTitle','ocr-trigger-sub':'ocrSub','lbl-amount':'amount','lbl-date':'date','lbl-category':'category','lbl-desc':'desc','lbl-desc-ta':'descTa','lbl-ocr-raw':'ocrRaw','btn-save-expense':'save','hist-title':'histTitle','hist-empty-text':'emptyHist','settings-title':'settings','set-sync-title':'syncStatus','set-export':'exportData','set-import':'importData','set-queue-title':'queueTitle','set-changepw':'changePw','set-data-title':'dataStats','set-entries-label':'totalEntries','set-amount-label':'totalSpent','set-logout':'logout','ocr-modal-title':'ocrModalTitle','ocr-camera-label':'ocrCamera','ocr-upload-label':'ocrUpload','btn-ocr-retake':'retake','btn-ocr-process':'process','ocr-processing-text':'processing','btn-ocr-discard':'discard','btn-ocr-fill':'fillForm','lbl-ocr-extracted':'extractedText','changepw-title':'changePw','btn-save-pw':'savePw'};Object.keys(ids).forEach(function(elId){var el=document.getElementById(elId);if(el)el.textContent=t(ids[elId])});document.getElementById('header-title').textContent=lang==='ta'?t('appName'):t('appNameTa');document.getElementById('lang-label').textContent=t('langToggle');document.getElementById('dash-month-label').textContent=ml(dashM);document.getElementById('inp-search').placeholder=t('search');document.getElementById('nav-dash').textContent=lang==='ta'?'முகை':'Dash';document.getElementById('nav-add').textContent=lang==='ta'?'சேர்':'Add';document.getElementById('nav-hist').textContent=lang==='ta'?'வரலாறு':'History';document.getElementById('nav-set').textContent=lang==='ta'?'அமை':'Settings';renderChips()}
+
+function renderChips(){var c=document.getElementById('category-chips');c.innerHTML=CATS.map(function(x){return'<div class="category-chip '+(selCat===x.id?'selected':'')+'" data-cat="'+x.id+'"><span class="material-icons-round" style="font-size:16px;color:'+x.color+'">'+x.icon+'</span><span>'+t(x.name)+'</span></div>'}).join('');c.querySelectorAll('.category-chip').forEach(function(ch){ch.onclick=function(){selCat=ch.dataset.cat;renderChips()}})}
+
+function renderDash(){var ym=dashM.getFullYear()+'-'+String(dashM.getMonth()+1).padStart(2,'0');getExpMonth(ym).then(function(exp){var total=exp.reduce(function(s,e){return s+e.amount},0);var dim=new Date(dashM.getFullYear(),dashM.getMonth()+1,0).getDate();var dp=Math.min(dim,new Date().getDate());var avg=dp>0?total/dp:0;document.getElementById('dash-total-amount').textContent=fmt(total);document.getElementById('dash-count').textContent=exp.length;document.getElementById('dash-avg').textContent=fmt(Math.round(avg));var cd={};exp.forEach(function(e){cd[e.category]=(cd[e.category]||0)+e.amount});var ck=Object.keys(cd),cv=Object.values(cd),cc2=ck.map(function(k){return cc(k)});var ce=document.getElementById('dash-chart-empty'),cv2=document.getElementById('chart-categories');if(cv.length===0){ce.classList.remove('hidden');cv2.style.display='none';if(chCat){chCat.destroy();chCat=null}}else{ce.classList.add('hidden');cv2.style.display='block';if(chCat)chCat.destroy();chCat=new Chart(cv2,{type:'doughnut',data:{labels:ck.map(function(k){return cn(k)}),datasets:[{data:cv,backgroundColor:cc2,borderWidth:2,borderColor:'#FAF6F1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true,pointStyleWidth:10,font:{size:11}}}}}})}var dd=new Array(dim).fill(0);exp.forEach(function(e){var day=parseInt(e.date.split('-')[2])-1;if(day>=0&&day<dim)dd[day]+=e.amount});if(chDay)chDay.destroy();chDay=new Chart(document.getElementById('chart-daily'),{type:'bar',data:{labels:Array.from({length:dim},function(_,i){return i+1}),datasets:[{data:dd,backgroundColor:'rgba(196,85,58,0.3)',borderColor:'#C4553A',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:10}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:function(v){return'₹'+v}}}}}})})}
+
+function renderHist(){var ym=histM.getFullYear()+'-'+String(histM.getMonth()+1).padStart(2,'0');getExpMonth(ym).then(function(exp){var search=(document.getElementById('inp-search').value||'').toLowerCase();var filtered=exp;if(search)filtered=exp.filter(function(e){return e.description.toLowerCase().indexOf(search)>=0||(e.descriptionTa&&e.descriptionTa.toLowerCase().indexOf(search)>=0)||cn(e.category).toLowerCase().indexOf(search)>=0||String(e.amount).indexOf(search)>=0});filtered.sort(function(a,b){return b.date.localeCompare(a.date)||b.createdAt-a.createdAt});var list=document.getElementById('history-list'),empty=document.getElementById('history-empty');if(filtered.length===0){list.innerHTML='';empty.classList.remove('hidden');return}empty.classList.add('hidden');var groups={};filtered.forEach(function(e){if(!groups[e.date])groups[e.date]=[];groups[e.date].push(e)});var today=tds(),yest=new Date(Date.now()-86400000).toISOString().split('T')[0];var html='';Object.keys(groups).sort().reverse().forEach(function(date){var label=date;if(date===today)label=t('today')+' ('+date+')';else if(date===yest)label=t('yesterday')+' ('+date+')';var dt=groups[date].reduce(function(s,e){return s+e.amount},0);html+='<div class="flex justify-between items-center mt-4 mb-1"><span class="text-xs font-semibold text-bark-muted">'+label+'</span><span class="text-xs font-bold text-primary">'+fmt(dt)+'</span></div>';groups[date].forEach(function(e){html+='<div class="expense-item" data-id="'+e.id+'"><div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:'+cc(e.category)+'15"><span class="material-icons-round" style="font-size:20px;color:'+cc(e.category)+'">'+ci(e.category)+'</span></div><div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">'+(e.description||cn(e.category))+'</p>'+(e.descriptionTa?'<p class="text-xs text-bark-muted truncate ta-text">'+e.descriptionTa+'</p>':'')+'</div><span class="text-sm font-bold whitespace-nowrap" style="font-variant-numeric:tabular-nums">'+fmt(e.amount)+'</span></div>'})});list.innerHTML=html;list.querySelectorAll('.expense-item').forEach(function(item){item.onclick=function(){showDetail(item.dataset.id)}})})}
+
+function showDetail(id){dbGet('expenses',id).then(function(e){if(!e)return;showConfirm(cn(e.category)+' — '+fmt(e.amount),(e.description||'')+(e.descriptionTa?'\n'+e.descriptionTa:'')+'\n'+e.date,t('delete'),function(){delExp(id).then(function(){toast(t('deleted'),'success');renderDash();renderHist();upStats()})})})}
+
+function upStats(){getAllExp().then(function(a){var total=a.reduce(function(s,e){return s+e.amount},0);document.getElementById('set-total-entries').textContent=a.length;document.getElementById('set-total-amount').textContent=fmt(total)})}
+
+function showConfirm(title,msg,okText,cb){document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-message').textContent=msg;document.getElementById('btn-confirm-ok').textContent=okText;document.getElementById('btn-confirm-cancel').textContent=t('cancel');document.getElementById('modal-confirm').classList.add('show');confirmCb=cb}
+function closeConfirm(){document.getElementById('modal-confirm').classList.remove('show');confirmCb=null}
+
+function resetOCR(){[1,2,3,4].forEach(function(i){document.getElementById('ocr-step'+i).classList.toggle('hidden',i!==1)});ocrImg=null}
+function showOCRStep(n){[1,2,3,4].forEach(function(i){document.getElementById('ocr-step'+i).classList.toggle('hidden',i!==n)})}
+
+function expData(){getAllExp().then(function(exp){return dbGet('users','master').then(function(u){var data={version:'1.0',app:'ExpenseDiary',exportDate:new Date().toISOString(),user:u?{username:u.username}:null,expenses:exp};var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='expense_backup_'+tds()+'.json';a.click();URL.revokeObjectURL(url);toast(t('exported'),'success')})})}
+function impData(file){file.text().then(function(txt){var data=JSON.parse(txt);if(!data.expenses||!Array.isArray(data.expenses))throw new Error('Invalid');var count=0;var promises=data.expenses.map(function(exp){exp.synced=false;exp.month=exp.date?exp.date.substring(0,7):tds().substring(0,7);if(!exp.id)exp.id=gid();return dbPut('expenses',exp).then(function(){return qOp('import',{id:exp.id})}).then(function(){count++})});return Promise.all(promises).then(function(){toast(t('imported')+' ('+count+')','success');renderDash();renderHist();upStats()})}).catch(function(){toast(t('errImport'),'error')})}
+
+function switchTab(tid){document.querySelectorAll('.tab-content').forEach(function(t2){t2.classList.remove('active')});document.getElementById('tab-'+tid).classList.add('active');document.querySelectorAll('.nav-item').forEach(function(n){n.classList.toggle('active',n.dataset.tab===tid)});if(tid==='dashboard')renderDash();if(tid==='history')renderHist();if(tid==='settings')upStats()}
+
+function init(){var prog=document.getElementById('splash-progress');var p=0;var iv=setInterval(function(){p+=5;if(p>100)p=100;prog.style.width=p+'%';if(p>=100){clearInterval(iv);setTimeout(function(){openDB().then(function(){return hasMaster()}).then(function(has){if(has)showScreen('screen-login');else showScreen('screen-setup');applyLang();upSync();document.getElementById('inp-date').value=tds()}).catch(function(e){toast('DB error: '+e.message,'error')})},300)}},30)}
+
+document.addEventListener('DOMContentLoaded',init);
+
+document.getElementById('btn-setup').onclick=function(){var un=document.getElementById('inp-username').value.trim();var pw=document.getElementById('inp-password').value;var cpw=document.getElementById('inp-confirm').value;var err=document.getElementById('setup-error');err.classList.add('hidden');if(!un){err.textContent=t('errUserReq');err.classList.remove('hidden');return}if(pw.length<4){err.textContent=t('errPwReq');err.classList.remove('hidden');return}if(pw!==cpw){err.textContent=t('errPwMatch');err.classList.remove('hidden');return}setupMaster(un,pw).then(function(){return dbGet('users','master')}).then(function(u){currentUser=u;showScreen('screen-app');applyLang();renderDash();upStats()}).catch(function(){err.textContent=t('errSetupFail');err.classList.remove('hidden')})};
+
+document.getElementById('btn-login').onclick=function(){var pw=document.getElementById('inp-login-pw').value;var err=document.getElementById('login-error');err.classList.add('hidden');if(!pw){err.textContent=t('errPwReq');err.classList.remove('hidden');return}verifyMaster(pw).then(function(ok){if(ok){return dbGet('users','master').then(function(u){currentUser=u;showScreen('screen-app');applyLang();renderDash();upStats()})}else{err.textContent=t('errLoginFail');err.classList.remove('hidden')}})};
+document.getElementById('inp-login-pw').onkeydown=function(e){if(e.key==='Enter')document.getElementById('btn-login').click()};
+document.getElementById('inp-confirm').onkeydown=function(e){if(e.key==='Enter')document.getElementById('btn-setup').click()};
+
+document.querySelectorAll('.nav-item').forEach(function(item){item.onclick=function(){switchTab(item.dataset.tab)}});
+document.getElementById('btn-lang-toggle').onclick=function(){lang=lang==='en'?'ta':'en';applyLang();renderDash();renderHist();upSync()};
+document.getElementById('btn-prev-month').onclick=function(){dashM.setMonth(dashM.getMonth()-1);document.getElementById('dash-month-label').textContent=ml(dashM);renderDash()};
+document.getElementById('btn-next-month').onclick=function(){dashM.setMonth(dashM.getMonth()+1);document.getElementById('dash-month-label').textContent=ml(dashM);renderDash()};
+document.getElementById('btn-hist-prev').onclick=function(){histM.setMonth(histM.getMonth()-1);renderHist()};
+document.getElementById('btn-hist-next').onclick=function(){histM.setMonth(histM.getMonth()+1);renderHist()};
+document.getElementById('inp-search').oninput=function(){renderHist()};
+
+document.getElementById('btn-save-expense').onclick=function(){var amount=document.getElementById('inp-amount').value;var date=document.getElementById('inp-date').value;var desc=document.getElementById('inp-desc').value;var descTa=document.getElementById('inp-desc-ta').value;var ocrRaw=document.getElementById('ocr-raw-text').value;if(!amount||parseFloat(amount)<=0){toast(t('amount')+'?','error');return}if(!date){toast(t('date')+'?','error');return}addExp({amount:amount,date:date,category:selCat,description:desc,descriptionTa:descTa,ocrRaw:ocrRaw}).then(function(){toast(t('saved'),'success');document.getElementById('inp-amount').value='';document.getElementById('inp-desc').value='';document.getElementById('inp-desc-ta').value='';document.getElementById('ocr-raw-text').value='';document.getElementById('ocr-raw-container').classList.add('hidden');document.getElementById('inp-date').value=tds();selCat='food';renderChips()}).catch(function(e){toast(e.message,'error')})};
+
+document.getElementById('ocr-trigger').onclick=function(){resetOCR();document.getElementById('modal-ocr').classList.add('show')};
+document.getElementById('btn-ocr-close').onclick=function(){document.getElementById('modal-ocr').classList.remove('show')};
+document.getElementById('modal-ocr').onclick=function(e){if(e.target===e.currentTarget)document.getElementById('modal-ocr').classList.remove('show')};
+
+document.getElementById('btn-ocr-camera').onclick=function(){var f=document.getElementById('ocr-file-input');f.setAttribute('capture','environment');f.click()};
+document.getElementById('btn-ocr-upload').onclick=function(){var f=document.getElementById('ocr-file-input');f.removeAttribute('capture');f.click()};
+document.getElementById('ocr-file-input').onchange=function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){ocrImg=ev.target.result;document.getElementById('ocr-preview-img').src=ocrImg;showOCRStep(2)};reader.readAsDataURL(file);e.target.value=''};
+
+document.getElementById('btn-ocr-retake').onclick=function(){resetOCR()};
+document.getElementById('btn-ocr-process').onclick=function(){if(!ocrImg)return;showOCRStep(3);doOCR(ocrImg).then(function(text){document.getElementById('ocr-extracted-text').value=text;var parsed=parseOCR(text);document.getElementById('ocr-parsed-info').textContent=t('parsed')+' ₹'+parsed.amount+' | '+parsed.date+' | '+cn(parsed.category);showOCRStep(4)}).catch(function(){toast(t('errOcr'),'error');resetOCR()})};
+
+document.getElementById('btn-ocr-fill').onclick=function(){var text=document.getElementById('ocr-extracted-text').value;var parsed=parseOCR(text);if(parsed.amount>0)document.getElementById('inp-amount').value=parsed.amount;document.getElementById('inp-date').value=parsed.date;selCat=parsed.category;renderChips();document.getElementById('inp-desc').value=parsed.description;document.getElementById('ocr-raw-text').value=text;document.getElementById('ocr-raw-container').classList.remove('hidden');document.getElementById('modal-ocr').classList.remove('show');switchTab('add')};
+document.getElementById('btn-ocr-discard').onclick=function(){document.getElementById('modal-ocr').classList.remove('show')};
+
+document.getElementById('btn-confirm-ok').onclick=function(){if(confirmCb)confirmCb();closeConfirm()};
+document.getElementById('btn-confirm-cancel').onclick=function(){closeConfirm()};
+document.getElementById('modal-confirm').onclick=function(e){if(e.target===e.currentTarget)closeConfirm()};
+
+document.getElementById('btn-export').onclick=function(){expData()};
+document.getElementById('btn-import').onclick=function(){document.getElementById('file-import').click()};
+document.getElementById('file-import').onchange=function(e){if(e.target.files[0])impData(e.target.files[0]);e.target.value=''};
+
+document.getElementById('btn-change-pw').onclick=function(){document.getElementById('inp-old-pw').value='';document.getElementById('inp-new-pw').value='';document.getElementById('inp-new-pw-confirm').value='';document.getElementById('changepw-error').classList.add('hidden');document.getElementById('modal-changepw').classList.add('show')};
+document.getElementById('modal-changepw').onclick=function(e){if(e.target===e.currentTarget)document.getElementById('modal-changepw').classList.remove('show')};
+document.getElementById('btn-save-pw').onclick=function(){var op=document.getElementById('inp-old-pw').value;var np=document.getElementById('inp-new-pw').value;var cp=document.getElementById('inp-new-pw-confirm').value;var err=document.getElementById('changepw-error');err.classList.add('hidden');if(np!==cp){err.textContent=t('errNewPw');err.classList.remove('hidden');return}chgPw(op,np).then(function(){toast(t('pwChanged'),'success');document.getElementById('modal-changepw').classList.remove('show')}).catch(function(e){err.textContent=e.message;err.classList.remove('hidden')})};
+
+document.getElementById('btn-logout').onclick=function(){showConfirm(t('logout'),'',t('logout'),function(){currentUser=null;showScreen('screen-login');document.getElementById('inp-login-pw').value='';document.getElementById('login-error').classList.add('hidden')})};
+
+window.addEventListener('online',function(){upSync()});
+window.addEventListener('offline',function(){upSync()});
+
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(function(reg){
+    setInterval(function(){reg.update()},60000);
+  }).catch(function(err){console.log('SW:',err)});
+}
+</script>
+</body>
+</html>
