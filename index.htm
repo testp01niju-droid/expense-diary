@@ -150,7 +150,7 @@ input,textarea,button,select{font-family:inherit;font-size:16px;outline:none}
 <div class="cd"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">💾</span><p style="font-weight:600;font-size:13px" id="s7t"></p></div>
 <div class="sg" style="margin-top:10px"><div class="sbx"><b style="color:var(--p)" id="s5t">0</b><small id="s8t"></small></div><div class="sbx"><b style="color:var(--a)" id="s6t">₹0</b><small id="s9t"></small></div></div></div>
 <button class="bs" style="width:100%;color:var(--p);margin-top:4px" id="blo">🚪 Logout</button>
-<p style="text-align:center;font-size:10px;color:var(--m);margin-top:8px">v1.2</p>
+<p style="text-align:center;font-size:10px;color:var(--m);margin-top:8px">v1.3</p>
 </div>
 </div>
 <nav class="bn">
@@ -220,12 +220,48 @@ function ae(d){var e={id:gid(),date:d.date||td(),amount:parseFloat(d.amount)||0,
 function del(id){return dd('expenses',id).then(function(){return qo('delete',{id:id})})}
 function gem(y){return di('expenses','month',y)}
 function aae(){return da('expenses')}
-// Learning
+
+// ===== IMAGE PREPROCESSING =====
+function prepImg(cvs){
+  var ctx=cvs.getContext('2d'),w=cvs.width,h=cvs.height,id=ctx.getImageData(0,0,w,h),d=id.data;
+  // Step 1: Grayscale + contrast boost (1.8x)
+  for(var i=0;i<d.length;i+=4){var g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];g=((g-128)*1.8)+128;d[i]=d[i+1]=d[i+2]=g<0?0:g>255?255:g}
+  // Step 2: Calculate Otsu-like threshold
+  var hist=new Array(256);for(var i=0;i<256;i++)hist[i]=0;
+  for(var i=0;i<d.length;i+=4)hist[d[i]]++;
+  var total=w*h,sum=0;for(var i=0;i<256;i++)sum+=i*hist[i];var sumB=0,wB=0,wF=0,maxVar=0,thresh=128;
+  for(var t=0;t<256;t++){wB+=hist[t];if(wB===0)continue;wF=total-wB;if(wF===0)break;sumB+=t*hist[t];var mB=sumB/wB,mF=(sum-sumB)/wF;var v=wB*wF*(mB-mF)*(mB-mF);if(v>maxVar){maxVar=v;thresh=t}}
+  // Step 3: Binarize
+  for(var i=0;i<d.length;i+=4){var v=d[i]<thresh?0:255;d[i]=d[i+1]=d[i+2]=v}
+  // Step 4: Slight dilation to connect broken text
+  ctx.putImageData(id,0,0);
+  var id2=ctx.getImageData(0,0,w,h),d2=id2.data;
+  for(var y=1;y<h-1;y++)for(var x=1;x<w-1;x++){var idx=(y*w+x)*4;if(d[idx]===0){if(d[((y-1)*w+x)*4]===255||d[((y+1)*w+x)*4]===255||d[(y*w+x-1)*4]===255||d[(y*w+x+1)*4]===255)d2[idx]=128}}
+  ctx.putImageData(id2,0,0);
+}
+
+// ===== OCR ERROR CORRECTION =====
+function fixOCR(t){
+  return t
+    .replace(/₹\s*0+/g,'₹')
+    .replace(/(\d)[Ol](\d)/g,'$10$2')
+    .replace(/(\d)[Ol]([^0-9])/g,'$10$2')
+    .replace(/(\d)[Ol]$/g,'$10')
+    .replace(/^[Ol](\d)/g,'0$1')
+    .replace(/([Sl])(\d)/g,function(m,a,b){return(a==='S'?'5':'1')+b})
+    .replace(/(\d)([Sl])/g,function(m,a,b){return a+(b==='S'?'5':'1')})
+    .replace(/\bl\b(?=\d)/g,'1')
+    .replace(/(\d)\b[lI]\b/g,'$1')
+    .replace(/\s+/g,' ').trim();
+}
+
+// ===== LEARNING =====
 function learnP(desc,cat){if(!desc||!cat)return;var ws=desc.toLowerCase().replace(/[^a-zA-Zஅ-ஹ\u0BBE-\u0BD7\s]/g,' ').split(/\s+/).filter(function(w){return w.length>2});var ch=Promise.resolve();ws.forEach(function(w){ch=ch.then(function(){return dg('learned','w_'+w).then(function(r){if(r){if(r.c===cat){r.n++;return dp('learned',r)}else if(r.n<3){r.c=cat;r.n=1;return dp('learned',r)}}else{return dp('learned',{id:'w_'+w,w:w,c:cat,n:1})}})})})}
 function matchL(text){var ws=text.toLowerCase().replace(/[^a-zA-Zஅ-ஹ\u0BBE-\u0BD7\s]/g,' ').split(/\s+/).filter(function(w){return w.length>2});return da('learned').then(function(all){var sc={};ws.forEach(function(w){var f=all.find(function(p){return p.w===w});if(f){sc[f.c]=(sc[f.c]||0)+f.n}else{all.forEach(function(p){if(lev(w,p.w)<=2)sc[p.c]=(sc[p.c]||0)+Math.max(1,p.n-1)})}});var best=null,bs=0;for(var c in sc)if(sc[c]>bs){bs=sc[c];best=c}return{category:best,score:bs,has:ws.length>0}})}
 function lev(a,b){var m=a.length,n=b.length,d=[];for(var i=0;i<=m;i++)d[i]=[i];for(var j=0;j<=n;j++)d[0][j]=j;for(var i=1;i<=m;i++)for(var j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
 function isOut(amt,cat){return aae().then(function(all){var cs=all.filter(function(e){return e.category===cat}).map(function(e){return e.amount});if(cs.length<3)return{is:false};cs.sort(function(a,b){return a-b});var q1=cs[Math.floor(cs.length*.25)],q3=cs[Math.floor(cs.length*.75)],iqr=q3-q1;return{is:amt<Math.max(0,q1-1.5*iqr)||amt>q3+1.5*iqr,lo:Math.max(0,q1-1.5*iqr),hi:q3+1.5*iqr}})}
-// Text parser
+
+// ===== TEXT PARSER =====
 function fA(t){var r=[],m,r1=/[₹ரூ]\s*(\d[\d,]*\.?\d*)/g;while((m=r1.exec(t))!==null){var v=parseFloat((m[1]||'').replace(/,/g,''));if(v>0&&v<1e7)r.push({v:v,i:m.index,l:m[0].length,f:m[0]})}var r2=/(\d[\d,]*\.?\d*)\s*(?:rupees?|Rs\.?|ரூபாய்?)/gi;while((m=r2.exec(t))!==null){var v=parseFloat((m[1]||'').replace(/,/g,''));if(v>0&&v<1e7){var dp=false;for(var i=0;i<r.length;i++)if(Math.abs(r[i].i-m.index)<5){dp=true;break}if(!dp)r.push({v:v,i:m.index,l:m[0].length,f:m[0]})}}var r3=/(?:cost(?:ed)?|spent|paid|செலவானது|செலுத்தினேன்|கட்டினேன்|ஆனது)\s*(?:இது|it)?\s*(?:was\s*)?(?:₹|ரூ)?\s*(\d[\d,]*\.?\d*)/gi;while((m=r3.exec(t))!==null){var v=parseFloat((m[1]||'').replace(/,/g,''));if(v>0&&v<1e7){var dp=false;for(var i=0;i<r.length;i++)if(Math.abs(r[i].i-m.index)<5){dp=true;break}if(!dp)r.push({v:v,i:m.index,l:m[0].length,f:m[0]})}}r.sort(function(a,b){return a.i-b.i});return r}
 function rDt(t,today){var tl=t.toLowerCase(),d=new Date(today);if(/\b(today|இன்று)\b/i.test(tl))return fd2(d);if(/\b(yesterday|நேற்று)\b/i.test(tl)){d.setDate(d.getDate()-1);return fd2(d)}if(/(?:day\s+before\s+yesterday|நாள்\s*முன்பு|முன்தினம்|ஒரு\s*நாள்\s*முன்|முன்னது)/i.test(tl)){d.setDate(d.getDate()-2);return fd2(d)}var nm=tl.match(/(\d+)\s*(?:days?|நாட்கள?)\s*(?:ago|முன்)/i);if(nm){d.setDate(d.getDate()-parseInt(nm[1]));return fd2(d)}if(/(?:last\s+week|கடந்த\s*வாரம்)/i.test(tl)){d.setDate(d.getDate()-7);return fd2(d)}var dm={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,ஞாயிறு:0,ஞாயிற்றுக்கிழமை:0,திங்கள்:1,திங்களன்று:1,செவ்வாய்:2,செவ்வாய்க்கிழமை:2,புதன்:3,புதன்கிழமை:3,வியாழன்:4,வியாழக்கிழமை:4,வெள்ளி:5,வெள்ளிக்கிழமை:5,சனி:6,சனிக்கிழமை:6};var lm=tl.match(/(?:last|கடந்த)\s+(\S+)/i);if(lm){var dn=lm[1].toLowerCase().replace(/[.,]/g,'');if(dm[dn]!==undefined){var tg=dm[dn],cr=d.getDay(),df=cr-tg;if(df<=0)df+=7;d.setDate(d.getDate()-df);return fd2(d)}}var sd=t.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);if(sd){if(sd[1].length===4)return sd[1]+'-'+sd[2].padStart(2,'0')+'-'+sd[3].padStart(2,'0');var y=sd[3].length===2?'20'+sd[3]:sd[3];return y+'-'+sd[2].padStart(2,'0')+'-'+sd[1].padStart(2,'0')}return null}
 function fd2(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -234,10 +270,51 @@ function dCt(t){var tl=t.toLowerCase(),cats={food:['food','restaurant','hotel','
 function pBT(txt){txt=txt.replace(/\r\n/g,'\n').replace(/\r/g,'\n');var lines=txt.split('\n'),res=[],ld=null,today=new Date();for(var li=0;li<lines.length;li++){var line=lines[li].trim();if(!line)continue;var amts=fA(line);if(!amts.length)continue;var dr=rDt(line,today);if(dr)ld=dr;for(var ai=0;ai<amts.length;ai++)res.push({amount:amts[ai].v,date:ld||td(),desc:eDsc(line,amts[ai]),category:null,raw:line,confidence:'default',learnScore:0,outlier:{is:false}})}var ld2=null;for(var i=0;i<res.length;i++){if(res[i].date)ld2=res[i].date;else if(ld2)res[i].date=ld2;else res[i].date=td()}return Promise.all(res.map(function(r){return matchL(r.raw).then(function(m){if(m.category&&m.score>=2)r.category=m.category;else r.category=dCt(r.raw);r.confidence=m.score>=2?'learned':(m.has?'keyword':'default');r.learnScore=m.score;return isOut(r.amount,r.category).then(function(o){r.outlier=o;return r})})})).then(function(results){dp('meta',{key:'lastText',value:txt,ts:Date.now()});return results})}
 function rBR(){var pv=document.getElementById('btpv');if(!bTD.length){pv.style.display='none';document.getElementById('bti').style.display='none';return}pv.style.display='block';var T=ta(),h='<p style="font-size:12px;color:var(--m);margin-bottom:8px">'+(T?'மதிப்பாய்வு':'Review')+' ('+bTD.length+')</p><div style="max-height:280px;overflow-y:auto">';for(var i=0;i<bTD.length;i++){var r=bTD[i],ci=r.confidence==='learned'?'🟢':(r.confidence==='keyword'?'🟡':'🔴'),oi=r.outlier&&r.outlier.is?'⚠️':'',ot=r.outlier&&r.outlier.is?' title="Expected: '+fm(r.outlier.lo)+' - '+fm(r.outlier.hi)+'"':'',wi=r.date>td()?'⚠️':'',opts=CA.map(function(c){return'<option value="'+c.id+'"'+(r.category===c.id?' selected':'')+'>'+c.e+' '+c.n+'</option>'}).join('');h+='<div class="btr"'+ot+'><input type="date" value="'+r.date+'" class="fi" onchange="bTD['+i+'].date=this.value"><select class="fi" onchange="bTD['+i+'].category=this.value">'+opts+'</select><input type="number" value="'+r.amount+'" class="fi" onchange="bTD['+i+'].amount=parseFloat(this.value)||0"><input type="text" value="'+esc(r.desc)+'" class="fi" style="flex:1;min-width:50px" onchange="bTD['+i+'].desc=this.value"><span class="ci" title="Score:'+r.learnScore+'">'+ci+oi+wi+'</span><button class="delr" onclick="bTD.splice('+i+',1);rBR()">×</button></div>'}h+='</div>';var tot=0,lc=0;for(var i=0;i<bTD.length;i++){tot+=bTD[i].amount;if(bTD[i].confidence==='learned')lc++}h+='<p style="font-size:12px;font-weight:600;color:var(--p);margin:8px 0">'+(T?'மொத்தம்':'Total')+': '+fm(tot)+'</p>';if(lc>0)h+='<p style="font-size:11px;color:var(--g)">🧠 '+(T?'கற்றல்':'Learned')+' '+lc+'/'+bTD.length+'</p>';h+='<div class="leg"><span>🟢 '+(T?'கற்றது':'Learned')+'</span><span>🟡 '+(T?'வார்த்தை':'Keyword')+'</span><span>🔴 '+(T?'இயல்புநிலை':'Default')+'</span><span>⚠️ '+(T?'விலகல்/எதிர்காலம்':'Outlier/Future')+'</span></div>';pv.innerHTML=h;document.getElementById('bti').style.display='block'}
 window.rBR=rBR;
-// OCR
+
+// ===== IMPROVED OCR =====
 function stopOCR(){if(ocrStr){ocrStr.getTracks().forEach(function(t){t.stop()});ocrStr=null}document.getElementById('ocrVid').srcObject=null;document.getElementById('ocrArea').style.display='none';document.getElementById('ocrPrev').style.display='none';document.getElementById('ocrSt').textContent=''}
-function procOCR(img,s){s.textContent=(ta()?'ஸ்கேன் செய்கிறது...':'Scanning...');s.style.color='var(--m)';Tesseract.createWorker('eng',1,{logger:function(m){if(m.status==='recognizing text')s.textContent=(ta()?'ஸ்கேன் ':'Scanning ')+Math.round((m.progress||0)*100)+'%'}}).then(function(w){return w.recognize(img).then(function(r){return w.terminate().then(function(){return r.data.text})})}).then(function(text){if(!text||!text.trim()){s.textContent=(ta()?'உரை கிடைக்கவில்லை':'No text found');s.style.color='var(--p)';return}s.textContent=(ta()?'முடிந்தது!':'Done!');s.style.color='var(--g)';pBT(text).then(function(res){if(res.length>0){var r=res[0];if(r.amount)document.getElementById('a3').value=r.amount;if(r.date)document.getElementById('a5').value=r.date;if(r.desc)document.getElementById('a8').value=r.desc;if(r.category){sc=r.category;rC()}toast((ta()?'OCR: ₹':'OCR: ₹')+(r.amount||'?'),'ok')}else{document.getElementById('a8').value=text.trim().substring(0,200);toast((ta()?'OCR உரை விவரத்தில்':'OCR text in desc'),'ok')}})}).catch(function(e){s.textContent='OCR: '+e.message;s.style.color='var(--p)'})}
-// UI
+function runOCR(img,s){
+  s.textContent='Scanning (eng+tam)...';s.style.color='var(--m)';
+  Tesseract.createWorker('eng+tam',1,{
+    logger:function(m){
+      if(m.status==='recognizing text')s.textContent=(ta()?'ஸ்கேன் ':'Scanning ')+Math.round((m.progress||0)*100)+'%';
+      else if(m.status==='loading language traineddata')s.textContent=(ta()?'மொழி தரவு ஏற்றுகிறது... (முதல் முறை ~14MB)':'Loading language data... (first time ~14MB)');
+      else if(m.status==='loading tesseract core')s.textContent=(ta()?'OCR இயந்திரம் ஏற்றுகிறது...':'Loading OCR engine...');
+      else if(m.status==='initializing tesseract')s.textContent=(ta()?'துவக்குகிறது...':'Initializing...');
+    }
+  }).then(function(w){return w.recognize(img).then(function(r){return w.terminate().then(function(){return r.data.text})})})
+  .then(function(text){
+    if(!text||!text.trim()){s.textContent=(ta()?'உரை கிடைக்கவில்லை':'No text found');s.style.color='var(--p)';return}
+    var fixed=fixOCR(text);
+    s.textContent=(ta()?'முடிந்தது! மதிப்பாய்வு திறக்கப்படுகிறது...':'Done! Opening review...');s.style.color='var(--g)';
+    // Open bulk text modal with OCR text — same review flow
+    setTimeout(function(){
+      document.getElementById('btt').value=fixed;
+      document.getElementById('mbt').classList.add('sh');
+      setTimeout(function(){document.getElementById('btp').click()},300);
+    },600);
+  }).catch(function(e){s.textContent='OCR: '+e.message;s.style.color='var(--p)'});
+}
+function procOCR(rawImg,s){
+  var im=new Image();
+  im.onload=function(){
+    var pc=document.createElement('canvas');
+    pc.width=im.width;pc.height=im.height;
+    pc.getContext('2d').drawImage(im,0,0);
+    prepImg(pc); // Preprocess: grayscale + contrast + Otsu binarize + dilation
+    var pImg=pc.toDataURL('image/png');
+    document.getElementById('ocrPrev').src=pImg;
+    document.getElementById('ocrPrev').style.display='block';
+    if(typeof Tesseract==='undefined'){
+      s.textContent=(ta()?'OCR ஏற்றுகிறது...':'Loading OCR...');s.style.color='var(--m)';
+      var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      sc.onerror=function(){s.textContent=(ta()?'OCR ஏற்ற முடியவில்லை. இணையம் சரிபார்க்கவும்':'OCR load failed. Check internet');s.style.color='var(--p)'};
+      document.head.appendChild(sc);sc.onload=function(){runOCR(pImg,s)};
+    }else{runOCR(pImg,s)}
+  };im.src=rawImg;
+}
+
+// ===== UI =====
 function aL(){var T=ta();document.getElementById('t1').textContent=T?'முதன்மை கணக்கை உருவாக்கு':'Create Master Account';document.getElementById('t2').textContent=T?'ஒரு முறை அமைப்பு':'One-time setup';document.getElementById('t3').textContent=T?'பயனர்பெயர்':'Username';document.getElementById('t4').textContent=T?'கடவுச்சொல்':'Password';document.getElementById('t5').textContent=T?'உறுதிப்படுத்து':'Confirm';document.getElementById('b1').textContent=T?'கணக்கை அமை':'Setup';document.getElementById('t6').textContent=T?'மீண்டும் வரவேற்கிறோம்':'Welcome Back';document.getElementById('t7').textContent=T?'கடவுச்சொல்லை உள்ளிடவும்':'Enter password';document.getElementById('t8').textContent=T?'கடவுச்சொல்':'Password';document.getElementById('b2').textContent=T?'உள்நுழை':'Login';document.getElementById('bl').textContent=T?'English':'தமிழ்';document.getElementById('d4').textContent=T?'மொத்த செலவு':'Total Expense';document.getElementById('d8').textContent=T?'வகை வாரியாக':'By Category';document.getElementById('d10').textContent=T?'இந்த மாதம் செலவுகள் இல்லை':'No expenses this month';document.getElementById('a1').textContent=T?'செலவு சேர்':'Add Expense';document.getElementById('a2').textContent=T?'தொகை':'Amount';document.getElementById('a4').textContent=T?'தேதி':'Date';document.getElementById('a6').textContent=T?'வகை':'Category';document.getElementById('a7').textContent=T?'விவரம்':'Description';document.getElementById('a9').textContent=T?'விவரம் (தமிழ்)':'Description (Tamil)';document.getElementById('a11').textContent=T?'சேமி':'Save';document.getElementById('ocrBtn').textContent=T?'📷 பில் ஸ்கேன் (OCR)':'📷 Scan Bill (OCR)';document.getElementById('h1').textContent=T?'வரலாறு':'History';document.getElementById('h4').placeholder=T?'தேடு...':'Search...';document.getElementById('h5').textContent=T?'செலவுகள் இல்லை':'No expenses';document.getElementById('s1t').textContent=T?'அமைப்புகள்':'Settings';document.getElementById('s2t').textContent=T?'ஒத்திசைவு நிலை':'Sync Status';document.getElementById('s3t').textContent=T?'சேமிக்கப்பட்டது':'All saved locally';document.getElementById('s7t').textContent=T?'தரவு புள்ளிவிவரம்':'Data Statistics';document.getElementById('s8t').textContent=T?'மொத்த பதிவுகள்':'Total Entries';document.getElementById('s9t').textContent=T?'மொத்த செலவு':'Total Spent';document.getElementById('st1').textContent=T?'பெரிய உரை பதிவேற்றம்':'Bulk Text Upload';document.getElementById('st2').textContent=T?'தமிழ்/ஆங்கிலம் உரையை ஒட்டவும்':'Paste Tamil/English text';document.getElementById('sc1').textContent=T?'CSV பதிவேற்றம்':'Bulk CSV Upload';document.getElementById('sc2').textContent=T?'CSV கோப்பை பதிவேற்றவும்':'Upload CSV file';document.getElementById('lr1').textContent=T?'ஸ்மார்ட் கற்றல்':'Smart Learning';document.getElementById('bt1').textContent=T?'📝 பெரிய உரை':'📝 Bulk Text';document.getElementById('bt2').textContent=T?'தமிழ்/ஆங்கிலம் செலவுகளை ஒட்டவும்':'Paste expenses. Auto-detects with learning.';document.getElementById('btp').textContent=T?'பாகுபடுத்து':'Parse';document.getElementById('btc').textContent=T?'ரத்து':'Cancel';document.getElementById('bti').textContent=T?'அனைத்தையும் இறக்குமதி':'Import All';document.getElementById('bctd').textContent=T?'டெம்ப்ளேட் பதிவிறக்கம்':'Download Template';document.getElementById('bci').textContent=T?'இறக்குமதி':'Import';document.getElementById('bcc').textContent=T?'ரத்து':'Cancel';document.getElementById('n0').textContent=T?'முகப்பு':'Dash';document.getElementById('n1').textContent=T?'சேர்':'Add';document.getElementById('n2').textContent=T?'வரலாறு':'History';document.getElementById('n3').textContent=T?'அமைப்பு':'Settings';document.getElementById('d1').textContent=ml(dM);rC();uLR()}
 function rC(){var c=document.getElementById('chips');c.innerHTML=CA.map(function(x){return'<div class="cp '+(sc===x.id?' sl':'')+'" data-c="'+x.id+'">'+x.e+' '+(ta()?x.n2:x.n)+'</div>'}).join('');c.querySelectorAll('.cp').forEach(function(ch){ch.onclick=function(){sc=ch.dataset.c;rC()}})}
 function rD(){var ym=dM.getFullYear()+'-'+String(dM.getMonth()+1).padStart(2,'0');gem(ym).then(function(ex){var tot=ex.reduce(function(s,e){return s+e.amount},0);var dim=new Date(dM.getFullYear(),dM.getMonth()+1,0).getDate();var dp2=Math.min(dim,new Date().getDate());var avg=dp2>0?tot/dp2:0;document.getElementById('d5').textContent=fm(tot);document.getElementById('d6').textContent=(ta()?'பதிவுகள்: ':'Entries: ')+ex.length;document.getElementById('d7').textContent=(ta()?'சராசரி: ':'Avg: ')+fm(Math.round(avg));var cd={};ex.forEach(function(e){cd[e.category]=(cd[e.category]||0)+e.amount});var ck=Object.keys(cd),cv=Object.values(cd),bars=document.getElementById('bars'),emp=document.getElementById('d9');if(!cv.length){bars.innerHTML='';emp.style.display='block';return}emp.style.display='none';var mx=Math.max.apply(null,cv);bars.innerHTML=ck.map(function(k,i){var pct=mx>0?Math.round(cv[i]/mx*100):0;return'<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="font-size:18px;width:24px;text-align:center">'+ce(k)+'</span><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>'+cn(k)+'</span><span style="font-weight:600">'+fm(cv[i])+'</span></div><div class="bar"><div class="bf" style="width:'+pct+'%;background:'+cc(k)+'"></div></div></div></div>'}).join('')})}
@@ -270,19 +347,19 @@ document.getElementById('bex').onclick=function(){expD()};
 document.getElementById('bim').onclick=function(){document.getElementById('fim').click()};
 document.getElementById('fim').onchange=function(e){if(e.target.files[0])impD(e.target.files[0]);e.target.value=''};
 document.getElementById('blo').onclick=function(){document.getElementById('c1').textContent=ta()?'வெளியேறு':'Logout';document.getElementById('c2').textContent='';document.getElementById('mcf').classList.add('sh');cfCb=function(){show('s2');document.getElementById('i4').value='';document.getElementById('e2').classList.remove('sh');cCf()}};
-// OCR handlers
-document.getElementById('ocrBtn').onclick=function(){var a=document.getElementById('ocrArea'),s=document.getElementById('ocrSt');a.style.display='block';s.textContent=(ta()?'கேமரா தொடங்குகிறது...':'Starting camera...');s.style.color='var(--m)';navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}}).then(function(stream){ocrStr=stream;document.getElementById('ocrVid').srcObject=stream;s.textContent=(ta()?'கேமரா தயார்':'Camera ready')}).catch(function(e){s.textContent='Camera: '+e.message;s.style.color='var(--p)'})};
+// OCR
+document.getElementById('ocrBtn').onclick=function(){var a=document.getElementById('ocrArea'),s=document.getElementById('ocrSt');a.style.display='block';s.textContent=(ta()?'கேமரா தொடங்குகிறது...':'Starting camera...');s.style.color='var(--m)';navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}}).then(function(stream){ocrStr=stream;document.getElementById('ocrVid').srcObject=stream;s.textContent=(ta()?'கேமரா தயார்':'Camera ready')}).catch(function(e){s.textContent='Camera: '+e.message;s.style.color='var(--p)')}};
 document.getElementById('ocrCan').onclick=stopOCR;
-document.getElementById('ocrCap').onclick=function(){var v=document.getElementById('ocrVid'),c=document.getElementById('ocrCvs');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);var d=c.toDataURL('image/png');document.getElementById('ocrPrev').src=d;document.getElementById('ocrPrev').style.display='block';stopOCR();var s=document.getElementById('ocrSt');if(typeof Tesseract==='undefined'){var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';sc.onerror=function(){s.textContent=(ta()?'OCR ஏற்ற முடியவில்லை':'OCR load failed. Check internet');s.style.color='var(--p)'};document.head.appendChild(sc);sc.onload=function(){procOCR(d,s)}}else{procOCR(d,s)}};
-// Bulk text handlers
+document.getElementById('ocrCap').onclick=function(){var v=document.getElementById('ocrVid'),c=document.getElementById('ocrCvs');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);var d=c.toDataURL('image/png');stopOCR();var s=document.getElementById('ocrSt');s.textContent=(ta()?'படம் செயலாக்குகிறது...':'Preprocessing...');s.style.color='var(--m)';procOCR(d,s)};
+// Bulk text
 document.getElementById('btxt').onclick=function(){bTD.length=0;document.getElementById('btt').value='';document.getElementById('btpv').style.display='none';document.getElementById('bti').style.display='none';dg('meta','lastText').then(function(r){document.getElementById('ltW').style.display=r&&r.value?'block':'none'});document.getElementById('mbt').classList.add('sh')};
 document.getElementById('ltB').onclick=function(){dg('meta','lastText').then(function(r){if(r&&r.value){document.getElementById('btt').value=r.value;document.getElementById('ltW').style.display='none';toast(ta()?'மீட்டமைக்கப்பட்டது':'Restored','ok')}})};
 document.getElementById('btp').onclick=function(){var txt=document.getElementById('btt').value.trim();if(!txt){toast(ta()?'உரையை உள்ளிடவும்':'Paste text','er');return}bTD.length=0;var btn=document.getElementById('btp');btn.disabled=true;btn.textContent=ta()?'பகுப்பாய்வு...':'Parsing...';pBT(txt).then(function(res){for(var i=0;i<res.length;i++)bTD.push(res[i]);btn.disabled=false;btn.textContent=ta()?'பாகுபடுத்து':'Parse';if(!bTD.length){toast(ta()?'தொகைகள் இல்லை':'No amounts','er');return}rBR();toast(bTD.length+(ta()?' கண்டறியப்பட்டன':' found'),'ok')}).catch(function(e){btn.disabled=false;btn.textContent=ta()?'பாகுபடுத்து':'Parse';toast('Err: '+e.message,'er')})};
 document.getElementById('btc').onclick=function(){cCf()};
 document.getElementById('bti').onclick=function(){var cnt=0;var ch=Promise.resolve();for(var i=0;i<bTD.length;i++){(function(r){ch=ch.then(function(){if(!r.amount||r.amount<=0)return;return ae({amount:r.amount,date:r.date,category:r.category,desc:r.desc,descTa:''}).then(function(){cnt++})})})(bTD[i])}ch.then(function(){cCf();toast((ta()?'சேமிக்கப்பட்டன':'Saved')+': '+cnt,'ok');rD();rH();uSt();uLR()})};
-// Bulk CSV handlers
+// Bulk CSV
 document.getElementById('bcsv').onclick=function(){bCD.length=0;document.getElementById('bcf').value='';document.getElementById('bcpv').style.display='none';document.getElementById('bci').style.display='none';document.getElementById('mbc').classList.add('sh')};
-document.getElementById('bctd').onclick=function(){var csv='date,category,amount,description\n2025-01-15,food,500,Lunch\n2025-01-15,transport,30,Bus\n2025-01-14,shopping,1200,Groceries\n';var b=new Blob([csv],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='expense_template.csv';a.click();toast(ta()?'டெம்ப்ளேட் பதிவிறக்கப்பட்டது':'Template downloaded','ok')};
+document.getElementById('bctd').onclick=function(){var csv='date,category,amount,description\n2025-01-15,food,500,Lunch\n2025-01-15,transport,30,Bus\n2025-01-14,shopping,1200,Groceries\n';var b=new Blob([csv],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='expense_template.csv';a.click();toast(ta()?'டெம்ப்ளேட்':'Template','ok')};
 document.getElementById('bcf').onchange=function(){var f=this.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(e){var lines=e.target.result.split('\n').map(function(l){return l.trim()}).filter(function(l){return l});if(lines.length<2){toast(ta()?'தரவு இல்லை':'No data','er');return}var vc={};CA.forEach(function(c){vc[c.id]=true});bCD.length=0;for(var i=1;i<lines.length;i++){var cols=lines[i].split(',').map(function(c){return c.trim()});if(cols.length<3)continue;bCD.push({date:cols[0],category:vc[cols[1].toLowerCase()]?cols[1].toLowerCase():'others',amount:parseFloat(cols[2])||0,desc:cols[3]||'',error:(!/^\d{4}-\d{2}-\d{2}$/.test(cols[0])?'date ':'')+(vc[cols[1].toLowerCase()]?'':'cat ')+((parseFloat(cols[2])||0)<=0?'amt ':'')})}var pv=document.getElementById('bcpv');pv.style.display='block';var h='<p style="font-size:12px;color:var(--m);margin-bottom:6px">'+bCD.length+' rows</p><div style="max-height:150px;overflow-y:auto">';for(var i=0;i<bCD.length;i++){var r=bCD[i],c=CA.find(function(x){return x.id===r.category});h+='<div style="display:flex;gap:6px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--b)"><span style="flex:1">'+r.date+'</span><span style="width:80px">'+(c?c.e:'')+' '+cn(r.category)+'</span><span style="width:60px;font-weight:600">'+fm(r.amount)+'</span><span>'+(r.error?'<span style="color:var(--p)">✗'+r.error+'</span>':'<span style="color:var(--g)">✓</span>')+'</span></div>'}h+='</div>';pv.innerHTML=h;document.getElementById('bci').style.display=bCD.filter(function(r){return!r.error}).length>0?'block':'none'};rd.readAsText(f)};
 document.getElementById('bci').onclick=function(){var valid=bCD.filter(function(r){return!r.error}),cnt=0;var ch=Promise.resolve();for(var i=0;i<valid.length;i++){(function(r){ch=ch.then(function(){return ae({amount:r.amount,date:r.date,category:r.category,desc:r.desc,descTa:''}).then(function(){cnt++})})})(valid[i])}ch.then(function(){cCf();toast(cnt+' CSV '+(ta()?'சேமிக்கப்பட்டன':'saved'),'ok');rD();rH();uSt();uLR()})};
 document.getElementById('bcc').onclick=function(){cCf()};
