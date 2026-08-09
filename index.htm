@@ -5,618 +5,467 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#C4553A">
 <link rel="manifest" href="manifest.json">
-<title>Expense Diary</title>
+<title>Expense Diary — செலவு பதிவேடு</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,-apple-system,sans-serif;background:#FAF6F1;color:#2D2A26;min-height:100vh}
-.screen{display:none;flex-direction:column;min-height:100vh}
-.screen.active{display:flex}
+.screen{display:none;flex-direction:column;min-height:100vh}.screen.active{display:flex}
 .splash{align-items:center;justify-content:center;background:linear-gradient(135deg,#C4553A,#E8734A)}
-.splash h1{color:#FAF6F1;font-size:28px;animation:pulse 1.5s infinite}
+.splash h1{color:#FAF6F1;font-size:26px;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .setup{padding:24px;align-items:center}
-.setup h2{margin-bottom:16px;font-size:22px}
-.setup p{margin-bottom:24px;color:#666;text-align:center}
-.input-group{width:100%;max-width:320px;margin-bottom:16px}
-.input-group label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
-.input-group input{width:100%;padding:12px;border:2px solid #E5DDD3;border-radius:10px;font-size:16px;background:#fff}
-.input-group input:focus{outline:none;border-color:#C4553A}
-.btn{padding:14px 32px;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:#C4553A;color:#FAF6F1;width:100%;max-width:320px}
-.btn-primary:hover{background:#A84630}
-.error-msg{color:#C4553A;font-size:13px;margin-top:4px;display:none}
+.setup h2{margin-bottom:8px;font-size:22px}.setup .sub{margin-bottom:20px;color:#888;font-size:13px;text-align:center}
+.ig{width:100%;max-width:320px;margin-bottom:14px}
+.ig label{display:block;margin-bottom:5px;font-weight:600;font-size:13px}
+.ig input{width:100%;padding:11px;border:2px solid #E5DDD3;border-radius:10px;font-size:16px;background:#fff}
+.ig input:focus{outline:none;border-color:#C4553A}
+.btn{padding:13px 28px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.bp{background:#C4553A;color:#FAF6F1;width:100%;max-width:320px}.bp:hover{background:#A84630}
+.err{color:#C4553A;font-size:12px;margin-top:3px;display:none}
 .tabs{display:flex;background:#fff;border-bottom:2px solid #E5DDD3;position:sticky;top:0;z-index:10}
-.tab{flex:1;padding:12px 8px;text-align:center;font-size:13px;font-weight:600;color:#999;cursor:pointer;border:none;background:none;transition:color .2s}
+.tab{flex:1;padding:11px 6px;text-align:center;font-size:12px;font-weight:600;color:#999;cursor:pointer;border:none;background:none}
 .tab.active{color:#C4553A;border-bottom:3px solid #C4553A}
-.content{flex:1;padding:16px;overflow-y:auto;padding-bottom:80px}
-.stat-card{background:#fff;border-radius:14px;padding:20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.stat-card h3{font-size:13px;color:#999;margin-bottom:4px}
-.stat-card .value{font-size:32px;font-weight:700;color:#C4553A}
-.bar-row{display:flex;align-items:center;margin-bottom:10px}
-.bar-label{width:80px;font-size:13px;color:#666}
-.bar-track{flex:1;height:20px;background:#E5DDD3;border-radius:10px;overflow:hidden}
-.bar-fill{height:100%;border-radius:10px;transition:width .5s}
-.bar-amount{width:70px;text-align:right;font-size:13px;font-weight:600}
-.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#C4553A;color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 12px rgba(196,85,58,.4);z-index:20}
-.fab:hover{background:#A84630}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;align-items:flex-end;justify-content:center}
-.modal-overlay.active{display:flex}
-.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:slideUp .3s}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal h2{margin-bottom:20px;font-size:20px}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:12px;border:2px solid #E5DDD3;border-radius:10px;font-size:16px;background:#fff}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:#C4553A}
-.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.cat-btn{padding:12px 8px;border:2px solid #E5DDD3;border-radius:10px;background:#fff;text-align:center;cursor:pointer;font-size:22px;transition:all .2s}
-.cat-btn.selected{border-color:#C4553A;background:#FEF0EC}
-.cat-btn span{display:block;font-size:11px;margin-top:4px;color:#666}
-.expense-item{display:flex;align-items:center;padding:14px;background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.expense-item .emoji{font-size:28px;margin-right:12px}
-.expense-item .info{flex:1}
-.expense-item .info .desc{font-weight:600;font-size:15px}
-.expense-item .info .meta{font-size:12px;color:#999;margin-top:2px}
-.expense-item .amt{font-weight:700;font-size:18px;color:#C4553A}
-.expense-item .del{margin-left:12px;background:none;border:none;color:#ccc;font-size:20px;cursor:pointer}
-.expense-item .del:hover{color:#C4553A}
-.search-bar{width:100%;padding:12px;border:2px solid #E5DDD3;border-radius:10px;font-size:15px;margin-bottom:16px;background:#fff}
-.search-bar:focus{outline:none;border-color:#C4553A}
-.settings-card{background:#fff;border-radius:14px;padding:20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.settings-card h3{margin-bottom:12px;font-size:16px}
-.settings-card p{font-size:13px;color:#666;margin-bottom:12px}
-.settings-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #E5DDD3}
-.settings-row:last-child{border:none}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#2D2A26;color:#FAF6F1;padding:12px 24px;border-radius:10px;font-size:14px;z-index:50;opacity:0;transition:opacity .3s}
+.ct{flex:1;padding:14px;overflow-y:auto;padding-bottom:80px}
+.sc{background:#fff;border-radius:14px;padding:18px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.sc h3{font-size:12px;color:#999;margin-bottom:3px}.sc .val{font-size:30px;font-weight:700;color:#C4553A}
+.sc h2{font-size:15px;margin-bottom:10px}
+.br{display:flex;align-items:center;margin-bottom:8px}
+.bl{width:80px;font-size:12px;color:#666}
+.bt{flex:1;height:18px;background:#E5DDD3;border-radius:9px;overflow:hidden}
+.bf{height:100%;border-radius:9px;transition:width .5s}
+.ba{width:65px;text-align:right;font-size:12px;font-weight:600}
+.fab{position:fixed;bottom:22px;right:22px;width:54px;height:54px;border-radius:50%;background:#C4553A;color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 12px rgba(196,85,58,.4);z-index:20}
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;align-items:flex-end;justify-content:center}
+.mo.active{display:flex}
+.md{background:#fff;border-radius:20px 20px 0 0;padding:22px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:su .3s}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.md h2{margin-bottom:6px;font-size:19px}
+.md .hint{font-size:12px;color:#888;margin-bottom:14px;line-height:1.5}
+.fg{margin-bottom:14px}
+.fg label{display:block;margin-bottom:5px;font-weight:600;font-size:13px}
+.fg input,.fg select{width:100%;padding:11px;border:2px solid #E5DDD3;border-radius:10px;font-size:15px;background:#fff}
+.fg input:focus,.fg select:focus{outline:none;border-color:#C4553A}
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
+.cb{padding:10px 6px;border:2px solid #E5DDD3;border-radius:10px;background:#fff;text-align:center;cursor:pointer;font-size:20px;transition:all .2s}
+.cb.sel{border-color:#C4553A;background:#FEF0EC}
+.cb span{display:block;font-size:10px;margin-top:3px;color:#666;line-height:1.2}
+.ei{display:flex;align-items:center;padding:12px;background:#fff;border-radius:12px;margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.ei .em{font-size:26px;margin-right:10px}.ei .inf{flex:1}
+.ei .inf .ds{font-weight:600;font-size:14px}.ei .inf .mt{font-size:11px;color:#999;margin-top:2px}
+.ei .am{font-weight:700;font-size:17px;color:#C4553A}
+.ei .dl{margin-left:10px;background:none;border:none;color:#ccc;font-size:18px;cursor:pointer}
+.ei .dl:hover{color:#C4553A}
+.sb{width:100%;padding:11px;border:2px solid #E5DDD3;border-radius:10px;font-size:14px;margin-bottom:14px;background:#fff}
+.sb:focus{outline:none;border-color:#C4553A}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #E5DDD3}
+.sr:last-child{border:none}
+.toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#2D2A26;color:#FAF6F1;padding:11px 22px;border-radius:10px;font-size:13px;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
-.empty-state{text-align:center;padding:48px 24px;color:#999}
-.empty-state .big{font-size:48px;margin-bottom:12px}
-.empty-state p{font-size:15px}
-#debugBanner{background:#C4553A;color:#fff;padding:8px 16px;font-size:12px;display:none;position:fixed;top:0;left:0;right:0;z-index:100;text-align:center}
+.es{text-align:center;padding:40px 20px;color:#999}.es .bg{font-size:44px;margin-bottom:10px}.es p{font-size:14px}
+#db{background:#C4553A;color:#fff;padding:7px 14px;font-size:11px;display:none;position:fixed;top:0;left:0;right:0;z-index:100;text-align:center}
+.bta{width:100%;min-height:180px;padding:14px;border:2px solid #E5DDD3;border-radius:12px;font-size:14px;line-height:1.7;resize:vertical;font-family:inherit;background:#fff}
+.bta:focus{outline:none;border-color:#C4553A}
+.bta::placeholder{color:#bbb}
+.rt{width:100%;font-size:11px;border-collapse:collapse;margin:10px 0}
+.rt th,.rt td{padding:5px 6px;border:1px solid #E5DDD3;text-align:left;vertical-align:top}
+.rt th{background:#FEF0EC;font-weight:600;position:sticky;top:0}
+.rt input,.rt select{padding:4px 5px;border:1px solid #ddd;border-radius:4px;font-size:11px;width:100%}
+.rt input[type="date"]{width:120px}
+.rt input[type="number"]{width:70px}
+.rbd{background:none;border:none;color:#C4553A;font-size:16px;cursor:pointer;padding:2px 6px}
+.act-btn{display:flex;gap:8px;margin-top:12px}.act-btn .btn{flex:1}
+.example-box{background:#F9F6F2;border:1px solid #E5DDD3;border-radius:8px;padding:10px;font-size:12px;color:#666;line-height:1.6;margin-bottom:14px;white-space:pre-wrap}
 </style>
 </head>
 <body>
-<div id="debugBanner"></div>
-
-<!-- SPLASH -->
-<div id="splashScreen" class="screen splash active">
-  <h1>Expense Diary</h1>
-</div>
-
-<!-- SETUP -->
+<div id="db"></div>
+<div id="splashScreen" class="screen splash active"><h1>செலவு பதிவேடு<br>Expense Diary</h1></div>
 <div id="setupScreen" class="screen setup">
-  <h2>Create Your Profile</h2>
-  <p>Set a master password to protect your data. This password is stored only on this device.</p>
-  <div class="input-group">
-    <label>Your Name</label>
-    <input type="text" id="setupName" placeholder="Enter your name">
-  </div>
-  <div class="input-group">
-    <label>Master Password (min 4 characters)</label>
-    <input type="password" id="setupPass" placeholder="Create password">
-    <div class="error-msg" id="setupErr">Password must be at least 4 characters</div>
-  </div>
-  <div class="input-group">
-    <label>Confirm Password</label>
-    <input type="password" id="setupPass2" placeholder="Confirm password">
-    <div class="error-msg" id="setupErr2">Passwords do not match</div>
-  </div>
-  <button class="btn btn-primary" id="setupBtn">Create Account</button>
+  <h2>புதிய கணக்கை உருவாக்குங்கள்</h2>
+  <div class="sub">Create your profile / உங்கள் சுயவிவரத்தை உருவாக்கவும்</div>
+  <div class="ig"><label>பெயர் / Name</label><input type="text" id="sN" placeholder="உங்கள் பெயர்"></div>
+  <div class="ig"><label>கடவுச்சொல் / Password (min 4)</label><input type="password" id="sP" placeholder="கடவுச்சொல் உருவாக்குங்கள்"><div class="err" id="sE1">கடவுச்சொல் குறைந்தது 4 எழுத்துகள்</div></div>
+  <div class="ig"><label>கடவுச்சொல் உறுதிப்படுத்துங்கள் / Confirm</label><input type="password" id="sP2" placeholder="மீண்டும் உள்ளிடவும்"><div class="err" id="sE2">கடவுச்சொற்கள் பொருந்தவில்லை</div></div>
+  <button class="btn bp" id="sB">உருவாக்கு / Create</button>
 </div>
-
-<!-- LOGIN -->
 <div id="loginScreen" class="screen setup">
-  <h2>Welcome Back</h2>
-  <p>Enter your master password to unlock.</p>
-  <div class="input-group">
-    <label>Password</label>
-    <input type="password" id="loginPass" placeholder="Enter password">
-    <div class="error-msg" id="loginErr">Wrong password</div>
-  </div>
-  <button class="btn btn-primary" id="loginBtn">Unlock</button>
-  <button class="btn" id="resetBtn" style="margin-top:12px;color:#C4553A;background:none">Reset All Data</button>
+  <h2>மீண்டும் வரவேற்கிறோம்</h2>
+  <div class="sub">Welcome back — enter your password / கடவுச்சொல்லை உள்ளிடவும்</div>
+  <div class="ig"><label>கடவுச்சொல் / Password</label><input type="password" id="lP" placeholder="கடவுச்சொல்"><div class="err" id="lE">தவறான கடவுச்சொல்</div></div>
+  <button class="btn bp" id="lB">திற / Unlock</button>
+  <button class="btn" id="rB" style="margin-top:10px;color:#C4553A;background:none;font-size:13px">அனைத்து தரவையும் அழி / Reset All</button>
 </div>
-
-<!-- MAIN APP -->
 <div id="mainScreen" class="screen">
   <div class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="history">History</button>
-    <button class="tab" data-tab="settings">Settings</button>
+    <button class="tab active" data-tab="dashboard">Dashboard<br><span style="font-size:10px;font-weight:400">முகப்பு</span></button>
+    <button class="tab" data-tab="history">History<br><span style="font-size:10px;font-weight:400">வரலாறு</span></button>
+    <button class="tab" data-tab="settings">Settings<br><span style="font-size:10px;font-weight:400">அமைப்புகள்</span></button>
   </div>
-  <div class="content" id="contentArea"></div>
-  <button class="fab" id="fabBtn">+</button>
+  <div class="ct" id="cA"></div>
+  <button class="fab" id="fab">+</button>
 </div>
 
 <!-- ADD EXPENSE MODAL -->
-<div class="modal-overlay" id="addModal">
-  <div class="modal">
-    <h2>Add Expense</h2>
-    <div class="form-group">
-      <label>Amount (₹)</label>
-      <input type="number" id="expAmount" placeholder="0" min="0" step="1">
-    </div>
-    <div class="form-group">
-      <label>Category</label>
-      <div class="cat-grid" id="catGrid"></div>
-    </div>
-    <div class="form-group">
-      <label>Description</label>
-      <input type="text" id="expDesc" placeholder="What did you spend on?">
-    </div>
-    <div class="form-group">
-      <label>Date</label>
-      <input type="date" id="expDate">
-    </div>
-    <button class="btn btn-primary" id="saveExpBtn" style="margin-bottom:12px">Save Expense</button>
-    <button class="btn" id="cancelExpBtn" style="color:#999;background:none">Cancel</button>
+<div class="mo" id="addM">
+  <div class="md">
+    <h2>செலவை சேர்க்கவும் / Add Expense</h2>
+    <div class="fg"><label>தொகை / Amount (₹)</label><input type="number" id="eA" placeholder="0" min="0"></div>
+    <div class="fg"><label>வகை / Category</label><div class="cg" id="cG"></div></div>
+    <div class="fg"><label>விவரம் / Description</label><input type="text" id="eD" placeholder="என்ன செலவு?"></div>
+    <div class="fg"><label>தேதி / Date</label><input type="date" id="eDt"></div>
+    <div class="act-btn"><button class="btn bp" id="svB">சேமி / Save</button><button class="btn" id="cnB" style="color:#999;background:#E5DDD3">ரத்து</button></div>
   </div>
 </div>
 
 <!-- CONFIRM MODAL -->
-<div class="modal-overlay" id="confirmModal">
-  <div class="modal">
-    <h2 id="confirmTitle">Confirm</h2>
-    <p id="confirmMsg" style="margin-bottom:20px;color:#666"></p>
-    <div style="display:flex;gap:12px">
-      <button class="btn" id="confirmNo" style="flex:1;background:#E5DDD3;color:#2D2A26">Cancel</button>
-      <button class="btn btn-primary" id="confirmYes" style="flex:1">Confirm</button>
+<div class="mo" id="cfM">
+  <div class="md">
+    <h2 id="cfT">Confirm</h2>
+    <p id="cfMg" style="margin-bottom:18px;color:#666"></p>
+    <div class="act-btn"><button class="btn" id="cfN" style="background:#E5DDD3;color:#2D2A26">ரத்து / Cancel</button><button class="btn bp" id="cfY">உறுதி / Confirm</button></div>
+  </div>
+</div>
+
+<!-- BULK TEXT UPLOAD MODAL -->
+<div class="mo" id="bulkTxtM">
+  <div class="md">
+    <h2>📝 பெரிய உரை பதிவேற்றம் / Bulk Text Upload</h2>
+    <div class="hint">உங்கள் செலவுகளை தமிழ் மற்றும் ஆங்கிலத்தில் ஒரே இடத்தில் ஒட்டவும். தானியங்கி பிரித்து தேதி, வகை, தொகை கண்டறியும்.<br>Paste your expenses in Tamil/English. It auto-detects dates, categories & amounts.</div>
+    <div class="example-box">நேற்று ஹோட்டல்ல சாப்பாடு சாப்பிட்டேன் 500 ரூபாய்
+yesterday bus fare 30 rs
+ஒரு நாள் முன்பு கடையில ஷாப்பிங் செய்தேன் 1200 ரூபாய்
+கடந்த திங்கள் மின் பில் கட்டேன் 800
+today doctor fee 350
+last saturday bought clothes 2500 rupees
+3 days ago petrol 200 rs</div>
+    <textarea class="bta" id="bulkTxt" placeholder="இங்கே உங்கள் செலவு உரையை ஒட்டவும்...&#10;Paste your expense text here...&#10;&#10;உதாரணம்: நேற்று உணவு 500 ரூபாய்"></textarea>
+    <div class="act-btn" style="margin-top:10px">
+      <button class="btn" id="bulkTxtParse" style="flex:2;background:#2A9D8F;color:#fff">பாகுபடுத்து / Parse Text</button>
+      <button class="btn" id="bulkTxtCl" style="flex:1;background:#E5DDD3;color:#2D2A26">ரத்து</button>
     </div>
+    <div id="bulkTxtPv" style="display:none"></div>
+    <button class="btn bp" id="bulkTxtImp" style="display:none;margin-top:10px">அனைத்தையும் இறக்குமதி செய் / Import All</button>
+  </div>
+</div>
+
+<!-- BULK CSV UPLOAD MODAL -->
+<div class="mo" id="bulkCsvM">
+  <div class="md">
+    <h2>📄 CSV பதிவேற்றம் / Bulk CSV Upload</h2>
+    <div class="hint">Structured CSV format: date,category,amount,description</div>
+    <div class="example-box">date,category,amount,description
+2025-01-15,food,500,Lunch
+2025-01-15,transport,30,Bus</div>
+    <button class="btn" id="dlTpl" style="width:100%;background:#E5DDD3;color:#2D2A26;margin-bottom:12px">டெம்ப்ளேட் பதிவிறக்கம் / Download Template</button>
+    <input type="file" id="bulkCsvF" accept=".csv" style="margin-bottom:12px;width:100%">
+    <div id="bulkCsvPv" style="display:none"></div>
+    <button class="btn bp" id="bulkCsvImp" style="display:none;margin-bottom:12px">இறக்குமதி / Import</button>
+    <button class="btn" id="bulkCsvCl" style="color:#999;background:none">ரத்து / Cancel</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// Debug helper
-function debug(msg){
-  var b=document.getElementById('debugBanner');
-  if(b){b.textContent='DEBUG: '+msg;b.style.display='block';}
-}
+function dbg(m){var b=document.getElementById('db');if(b){b.textContent='ERR: '+m;b.style.display='block'}}
 
-// Categories
 var CATS=[
-  {id:'food',emoji:'🍛',label:'Food',labelTa:'உணவு'},
-  {id:'transport',emoji:'🚌',label:'Transport',labelTa:'போக்குவரத்து'},
-  {id:'shopping',emoji:'🛍️',label:'Shopping',labelTa:'ஷாப்பிங்'},
-  {id:'bills',emoji:'💡',label:'Bills',labelTa:'பில்கள்'},
-  {id:'health',emoji:'💊',label:'Health',labelTa:'சுகாதாரம்'},
-  {id:'education',emoji:'📚',label:'Education',labelTa:'கல்வி'},
-  {id:'entertainment',emoji:'🎬',label:'Entertainment',labelTa:'பொழுதுபோக்கு'},
-  {id:'rent',emoji:'🏠',label:'Rent',labelTa:'வாடகை'},
-  {id:'other',emoji:'📦',label:'Other',labelTa:'மற்றவை'}
+  {id:'food',e:'🍛',l:'Food',lt:'உணவு'},
+  {id:'transport',e:'🚌',l:'Transport',lt:'போக்குவரத்து'},
+  {id:'shopping',e:'🛍️',l:'Shopping',lt:'ஷாப்பிங்'},
+  {id:'bills',e:'💡',l:'Bills',lt:'பில்கள்'},
+  {id:'health',e:'💊',l:'Health',lt:'சுகாதாரம்'},
+  {id:'education',e:'📚',l:'Education',lt:'கல்வி'},
+  {id:'entertainment',e:'🎬',l:'Entertainment',lt:'பொழுதுபோக்கு'},
+  {id:'rent',e:'🏠',l:'Rent',lt:'வாடகை'},
+  {id:'other',e:'📦',l:'Other',lt:'மற்றவை'}
 ];
-var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-var selectedCat='food';
-var currentTab='dashboard';
-var confirmCb=null;
+var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var selCat='food',curTab='dashboard',cfCb=null,bulkTxtData=[],bulkCsvData=[];
 
-// IndexedDB helpers
-function openDB(){
-  return new Promise(function(resolve,reject){
-    var r=indexedDB.open('ExpenseDiaryDB',2);
-    r.onupgradeneeded=function(e){
-      var db=e.target.result;
-      if(!db.objectStoreNames.contains('app'))db.createObjectStore('app',{keyPath:'key'});
-      if(!db.objectStoreNames.contains('expenses'))db.createObjectStore('expenses',{keyPath:'id'});
-    };
-    r.onsuccess=function(e){resolve(e.target.result)};
-    r.onerror=function(e){reject(e.target.error)};
-  });
-}
-function dbGet(key,store){
-  return openDB().then(function(db){
-    return new Promise(function(resolve,reject){
-      var tx=db.transaction(store,'readonly');
-      var req=tx.objectStore(store).get(key);
-      req.onsuccess=function(){resolve(req.result)};
-      req.onerror=function(){reject(req.error)};
-    });
-  });
-}
-function dbPut(val,store){
-  return openDB().then(function(db){
-    return new Promise(function(resolve,reject){
-      var tx=db.transaction(store,'readwrite');
-      var req=tx.objectStore(store).put(val);
-      req.onsuccess=function(){resolve(req.result)};
-      req.onerror=function(){reject(req.error)};
-    });
-  });
-}
-function dbGetAll(store){
-  return openDB().then(function(db){
-    return new Promise(function(resolve,reject){
-      var tx=db.transaction(store,'readonly');
-      var req=tx.objectStore(store).getAll();
-      req.onsuccess=function(){resolve(req.result||[])};
-      req.onerror=function(){reject(req.error)};
-    });
-  });
-}
-function dbDel(key,store){
-  return openDB().then(function(db){
-    return new Promise(function(resolve,reject){
-      var tx=db.transaction(store,'readwrite');
-      var req=tx.objectStore(store).delete(key);
-      req.onsuccess=function(){resolve()};
-      req.onerror=function(){reject(req.error)};
-    });
-  });
-}
+function openDB(){return new Promise(function(r,j){var x=indexedDB.open('ExpenseDiaryDB',2);x.onupgradeneeded=function(e){var d=e.target.result;if(!d.objectStoreNames.contains('app'))d.createObjectStore('app',{keyPath:'key'});if(!d.objectStoreNames.contains('expenses'))d.createObjectStore('expenses',{keyPath:'id'})};x.onsuccess=function(e){r(e.target.result)};x.onerror=function(e){j(e.target.error)}})}
+function dbG(k,s){return openDB().then(function(d){return new Promise(function(r,j){var t=d.transaction(s,'readonly');var q=t.objectStore(s).get(k);q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})})}
+function dbP(v,s){return openDB().then(function(d){return new Promise(function(r,j){var t=d.transaction(s,'readwrite');var q=t.objectStore(s).put(v);q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})})}
+function dbA(s){return openDB().then(function(d){return new Promise(function(r,j){var t=d.transaction(s,'readonly');var q=t.objectStore(s).getAll();q.onsuccess=function(){r(q.result||[])};q.onerror=function(){j(q.error)}})})}
+function dbD(k,s){return openDB().then(function(d){return new Promise(function(r,j){var t=d.transaction(s,'readwrite');var q=t.objectStore(s).delete(k);q.onsuccess=function(){r()};q.onerror=function(){j(q.error)}})})}
 
-// SHA-256
-async function sha256(msg){
-  var buf=new TextEncoder().encode(msg);
-  var hash=await crypto.subtle.digest('SHA-256',buf);
-  return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
-}
+async function sha(m){var b=new TextEncoder().encode(m);var h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
 
-// Show screen
-function showScreen(id){
-  var screens=document.querySelectorAll('.screen');
-  for(var i=0;i<screens.length;i++)screens[i].classList.remove('active');
-  document.getElementById(id).classList.add('active');
-}
+function showS(id){var ss=document.querySelectorAll('.screen');for(var i=0;i<ss.length;i++)ss[i].classList.remove('active');document.getElementById(id).classList.add('active')}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
+function showCf(t,m,cb){document.getElementById('cfT').textContent=t;document.getElementById('cfMg').textContent=m;document.getElementById('cfM').classList.add('active');cfCb=cb}
+function fmtD(d){var dt=new Date(d);return dt.getDate()+' '+MN[dt.getMonth()]+' '+dt.getFullYear()}
+function tdy(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function gC(id){for(var i=0;i<CATS.length;i++){if(CATS[i].id===id)return CATS[i]}return CATS[8]}
+function escH(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
 
-// Toast
-function toast(msg){
-  var t=document.getElementById('toast');
-  t.textContent=msg;
-  t.classList.add('show');
-  setTimeout(function(){t.classList.remove('show')},2500);
-}
-
-// Show confirm dialog
-function showConfirm(title,msg,cb){
-  document.getElementById('confirmTitle').textContent=title;
-  document.getElementById('confirmMsg').textContent=msg;
-  document.getElementById('confirmModal').classList.add('active');
-  confirmCb=cb;
-}
-
-// Format date
-function fmtDate(d){
-  var dt=new Date(d);
-  return dt.getDate()+' '+MONTHS[dt.getMonth()]+' '+dt.getFullYear();
-}
-function todayStr(){
-  var d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-// Get cat info
-function getCat(id){
-  for(var i=0;i<CATS.length;i++){if(CATS[i].id===id)return CATS[i]}
-  return CATS[8];
-}
-
-// Build category grid
-function buildCatGrid(){
-  var g=document.getElementById('catGrid');
-  g.innerHTML='';
+function buildCG(){
+  var g=document.getElementById('cG');g.innerHTML='';
   for(var i=0;i<CATS.length;i++){
-    var c=CATS[i];
-    var btn=document.createElement('div');
-    btn.className='cat-btn'+(selectedCat===c.id?' selected':'');
-    btn.innerHTML=c.emoji+'<span>'+c.label+'</span>';
+    var c=CATS[i],btn=document.createElement('div');
+    btn.className='cb'+(selCat===c.id?' sel':'');
+    btn.innerHTML=c.e+'<span>'+c.l+'<br>'+c.lt+'</span>';
     btn.setAttribute('data-id',c.id);
-    btn.onclick=function(){
-      selectedCat=this.getAttribute('data-id');
-      var all=document.querySelectorAll('.cat-btn');
-      for(var j=0;j<all.length;j++)all[j].classList.remove('selected');
-      this.classList.add('selected');
-    };
+    btn.onclick=function(){selCat=this.getAttribute('data-id');var a=document.querySelectorAll('.cb');for(var j=0;j<a.length;j++)a[j].classList.remove('sel');this.classList.add('sel')};
     g.appendChild(btn);
   }
 }
 
-// Render dashboard
-async function renderDashboard(){
-  var expenses=await dbGetAll('expenses');
-  var today=todayStr();
-  var thisMonth=today.substring(0,7);
-  var todayTotal=0,monthTotal=0;
-  var catTotals={};
-  var todayExpenses=[];
-
-  for(var i=0;i<expenses.length;i++){
-    var e=expenses[i];
-    if(e.date===today){todayTotal+=e.amount;todayExpenses.push(e)}
-    if(e.date&&e.date.startsWith(thisMonth)){monthTotal+=e.amount}
-    if(!catTotals[e.category])catTotals[e.category]=0;
-    catTotals[e.category]+=e.amount;
+async function renderDash(){
+  var ex=await dbA('expenses'),td=tdy(),tm=td.substring(0,7),tT=0,mT=0,cT={},tE=[];
+  for(var i=0;i<ex.length;i++){
+    var e=ex[i];if(e.date===td){tT+=e.amount;tE.push(e)}
+    if(e.date&&e.date.startsWith(tm))mT+=e.amount;
+    if(!cT[e.category])cT[e.category]=0;cT[e.category]+=e.amount;
   }
+  var h='<div class="sc"><h3>இன்று / Today</h3><div class="val">₹'+tT.toLocaleString()+'</div></div>';
+  h+='<div class="sc"><h3>இந்த மாதம் / This Month ('+MN[parseInt(tm.split('-')[1])-1]+')</h3><div class="val">₹'+mT.toLocaleString()+'</div></div>';
+  var mx=1,ks=Object.keys(cT);
+  for(var i=0;i<ks.length;i++){if(cT[ks[i]]>mx)mx=cT[ks[i]]}
+  var cl=['#C4553A','#E8734A','#F4A261','#2A9D8F','#264653','#6A4C93','#1982C4','#8AC926','#FF595E'];
+  h+='<div class="sc"><h2>வகை விவரம் / Category Breakdown</h2>';
+  for(var i=0;i<ks.length;i++){var c=gC(ks[i]),pct=Math.round((cT[ks[i]]/mx)*100),co=cl[i%cl.length];
+    h+='<div class="br"><span class="bl">'+c.e+' '+c.l+'</span><div class="bt"><div class="bf" style="width:'+pct+'%;background:'+co+'"></div></div><span class="ba">₹'+cT[ks[i]].toLocaleString()+'</span></div>'}
+  h+='</div><div class="sc"><h2>இன்றைய செலவுகள் / Today</h2>';
+  if(tE.length===0)h+='<div class="es"><div class="bg">📭</div><p>இன்று செலவுகள் இல்லை</p></div>';
+  else for(var i=0;i<tE.length;i++){var e=tE[i],c=gC(e.category);h+='<div class="ei"><span class="em">'+c.e+'</span><div class="inf"><div class="ds">'+(e.description||c.l)+'</div><div class="mt">'+fmtD(e.date)+'</div></div><span class="am">₹'+e.amount.toLocaleString()+'</span></div>'}
+  h+='</div>';document.getElementById('cA').innerHTML=h;
+}
 
-  var html='<div class="stat-card"><h3>Today</h3><div class="value">₹'+todayTotal.toLocaleString()+'</div></div>';
-  html+='<div class="stat-card"><h3>This Month ('+MONTHS[parseInt(thisMonth.split('-')[1])-1]+')</h3><div class="value">₹'+monthTotal.toLocaleString()+'</div></div>';
+async function renderHist(f){
+  var ex=await dbA('expenses');ex.sort(function(a,b){return(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0)});
+  if(f){var fl=f.toLowerCase();ex=ex.filter(function(e){var c=gC(e.category);return(e.description||'').toLowerCase().includes(fl)||c.l.toLowerCase().includes(fl)||c.lt.includes(fl)||(e.amount+'').includes(fl)})}
+  var h='<input type="text" class="sb" id="sI" placeholder="தேடுங்கள் / Search expenses..." value="'+(f||'')+'">';
+  if(ex.length===0)h+='<div class="es"><div class="bg">📋</div><p>'+(f?'பொருத்தங்கள் இல்லை':'செலவுகள் இல்லை')+'</p></div>';
+  else for(var i=0;i<ex.length;i++){var e=ex[i],c=gC(e.category);h+='<div class="ei"><span class="em">'+c.e+'</span><div class="inf"><div class="ds">'+(e.description||c.l)+'</div><div class="mt">'+fmtD(e.date)+' · '+c.l+' / '+c.lt+'</div></div><span class="am">₹'+e.amount.toLocaleString()+'</span><button class="dl" data-id="'+e.id+'">×</button></div>'}
+  document.getElementById('cA').innerHTML=h;
+  var si=document.getElementById('sI');if(si)si.oninput=function(){renderHist(this.value)};
+  var ds=document.querySelectorAll('.ei .dl');for(var i=0;i<ds.length;i++)ds[i].onclick=function(){var id=this.getAttribute('data-id');showCf('நீக்கு / Delete','இந்த செலவை நீக்கவா?',function(){dbD(id,'expenses').then(function(){toast('நீக்கப்பட்டது');renderHist()})})};
+}
 
-  // Category bars
-  var maxCat=1;
-  var catKeys=Object.keys(catTotals);
-  for(var i=0;i<catKeys.length;i++){if(catTotals[catKeys[i]]>maxCat)maxCat=catTotals[catKeys[i]]}
-  var colors=['#C4553A','#E8734A','#F4A261','#2A9D8F','#264653','#6A4C93','#1982C4','#8AC926','#FF595E'];
-  html+='<div class="stat-card"><h3>Category Breakdown</h3>';
-  for(var i=0;i<catKeys.length;i++){
-    var cat=getCat(catKeys[i]);
-    var pct=Math.round((catTotals[catKeys[i]]/maxCat)*100);
-    var col=colors[i%colors.length];
-    html+='<div class="bar-row"><span class="bar-label">'+cat.emoji+' '+cat.label+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div><span class="bar-amount">₹'+catTotals[catKeys[i]].toLocaleString()+'</span></div>';
-  }
-  html+='</div>';
+async function renderSett(){
+  var pr=await dbG('profile','app'),cnt=(await dbA('expenses')).length;
+  var h='<div class="sc"><h2>சுயவிவரம் / Profile</h2><div class="sr"><span>பெயர் / Name</span><span style="font-weight:600">'+(pr?pr.name:'-')+'</span></div><div class="sr"><span>மொத்த செலவுகள்</span><span style="font-weight:600;color:#C4553A">'+cnt+'</span></div></div>';
+  h+='<div class="sc"><h2>விரைவு செயல்கள் / Quick Actions</h2>';
+  h+='<button class="btn bp" id="bTxtBtn" style="max-width:100%;margin-bottom:8px">📝 உரை பதிவேற்றம் / Bulk Text Upload</button>';
+  h+='<button class="btn bp" id="bCsvBtn" style="max-width:100%;margin-bottom:8px">📄 CSV பதிவேற்றம் / Bulk CSV Upload</button>';
+  h+='<button class="btn bp" id="expBtn" style="max-width:100%;margin-bottom:8px">📤 JSON ஏற்றுமதி / Export</button></div>';
+  h+='<div class="sc"><h2>JSON இறக்குமதி / Import JSON</h2><input type="file" id="impF" accept=".json" style="margin-bottom:10px;width:100%"><button class="btn bp" id="impB" style="max-width:100%">இறக்குமதி / Import</button></div>';
+  h+='<div class="sc"><h2>கடவுச்சொல் மாற்று / Change Password</h2><div class="fg"><label>தற்போதைய / Current</label><input type="password" id="cpP"></div><div class="fg"><label>புதிய / New</label><input type="password" id="npP"></div><button class="btn bp" id="chP" style="max-width:100%">மாற்று / Change</button></div>';
+  h+='<div class="sc"><h2 style="color:#C4553A">⚠️ ஆபத்து மண்டலம் / Danger Zone</h2><p style="font-size:12px;color:#888;margin-bottom:10px">அனைத்து தரவையும் நிரந்தரமாக அழிக்கும்</p><button class="btn" id="dngB" style="width:100%;background:#C4553A;color:#fff">அனைத்தையும் அழி / Delete All</button></div>';
+  document.getElementById('cA').innerHTML=h;
 
-  // Today's expenses
-  html+='<div class="stat-card"><h3>Today\'s Expenses</h3>';
-  if(todayExpenses.length===0){
-    html+='<div class="empty-state"><div class="big">📭</div><p>No expenses today</p></div>';
-  } else {
-    for(var i=0;i<todayExpenses.length;i++){
-      var e=todayExpenses[i];
-      var cat=getCat(e.category);
-      html+='<div class="expense-item"><span class="emoji">'+cat.emoji+'</span><div class="info"><div class="desc">'+(e.description||cat.label)+'</div><div class="meta">'+fmtDate(e.date)+'</div></div><span class="amt">₹'+e.amount.toLocaleString()+'</span></div>';
+  document.getElementById('bTxtBtn').onclick=function(){bulkTxtData=[];document.getElementById('bulkTxt').value='';document.getElementById('bulkTxtPv').style.display='none';document.getElementById('bulkTxtImp').style.display='none';document.getElementById('bulkTxtM').classList.add('active')};
+  document.getElementById('bCsvBtn').onclick=function(){bulkCsvData=[];document.getElementById('bulkCsvF').value='';document.getElementById('bulkCsvPv').style.display='none';document.getElementById('bulkCsvImp').style.display='none';document.getElementById('bulkCsvM').classList.add('active')};
+  document.getElementById('expBtn').onclick=async function(){var d=await dbA('expenses');var b=new Blob([JSON.stringify({version:'1.0',exportedAt:new Date().toISOString(),expenses:d},null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='expense_diary_'+tdy()+'.json';a.click();toast('ஏற்றுமதி ஆனது')};
+  document.getElementById('impB').onclick=function(){var f=document.getElementById('impF').files[0];if(!f){toast('கோப்பை தேர்வு செய்யவும்');return}var rd=new FileReader();rd.onload=async function(e){try{var d=JSON.parse(e.target.result);if(!d.expenses){toast('தவறான கோப்பு');return}for(var i=0;i<d.expenses.length;i++)await dbP(d.expenses[i],'expenses');toast(d.expenses.length+' செலவுகள் இறக்குமதி');renderSett()}catch(err){toast('பிழை')}};rd.readAsText(f)};
+  document.getElementById('chP').onclick=async function(){var c=document.getElementById('cpP').value,n=document.getElementById('npP').value;if(!c||!n){toast('இரண்டும் நிரப்பவும்');return}if(n.length<4){toast('குறைந்தது 4 எழுத்துகள்');return}var pr=await dbG('profile','app');if((await sha(c))!==pr.passwordHash){toast('தவறான கடவுச்சொல்');return}pr.passwordHash=await sha(n);await dbP(pr,'app');toast('கடவுச்சொல் மாற்றப்பட்டது')};
+  document.getElementById('dngB').onclick=function(){showCf('⚠️ அனைத்தையும் அழி','இது மீட்டமுடியாது! நிச்சயமா?',async function(){var ex=await dbA('expenses');for(var i=0;i<ex.length;i++)await dbD(ex[i].id,'expenses');await dbD('profile','app');toast('அழிக்கப்பட்டது');showS('setupScreen')})};
+}
+
+function switchTab(t){curTab=t;var ts=document.querySelectorAll('.tab');for(var i=0;i<ts.length;i++)ts[i].classList.toggle('active',ts[i].getAttribute('data-tab')===t);if(t==='dashboard')renderDash();else if(t==='history')renderHist();else if(t==='settings')renderSett()}
+
+// ========== BULK TEXT PARSER ==========
+function findAmounts(txt){
+  var res=[];
+  // ₹ or ரூ + number
+  var r1=/[₹ரூ]\s*(\d[\d,]*\.?\d*)/g,m;
+  while((m=r1.exec(txt))!==null){var v=parseFloat((m[1]||'').replace(/,/g,''));if(v>0&&v<1e7)res.push({v:v,i:m.index,l:m[0].length,f:m[0]})}
+  // number + rupees/Rs/ரூபாய்
+  var r2=/(\d[\d,]*\.?\d*)\s*(?:rupees?|Rs\.?|ரூபாய்?)/gi;
+  while((m=r2.exec(txt))!==null){var v=parseFloat((m[1]||'').replace(/,/g,''));if(v>0&&v<1e7){var dup=false;for(var i=0;i<res.length;i++)if(Math.abs(res[i].i-m.index)<5){dup=true;break}if(!dup)res.push({v:v,i:m.index,l:m[0].length,f:m[0]})}}
+  // cost/spent/paid + number
+  var r3=/(?:cost(?:ed)?|spent|paid|செலவானது|செலுத்தினேன்|கட்டினேன்|ஆனது)\s*(?:இது|it)?\s*(?:was\s*)?(?:₹|ரூ)?\s*(\d[\d,]*\.?\d*)/gi;
+  while((m=r3.exec(txt))!==null){var v=parseFloat((m[1]||'').replace(/,/g,''));if(v>0&&v<1e7){var dup=false;for(var i=0;i<res.length;i++)if(Math.abs(res[i].i-m.index)<5){dup=true;break}if(!dup)res.push({v:v,i:m.index,l:m[0].length,f:m[0]})}}
+  res.sort(function(a,b){return a.i-b.i});return res;
+}
+
+function resolveDate(txt,today){
+  var t=txt.toLowerCase(),d=new Date(today);
+  if(/\b(today|இன்று)\b/i.test(t))return fmtD2(d);
+  if(/\b(yesterday|நேற்று)\b/i.test(t)){d.setDate(d.getDate()-1);return fmtD2(d)}
+  if(/(?:day\s+before\s+yesterday|நாள்\s*முன்பு|முன்தினம்|ஒரு\s*நாள்\s*முன்|முன்னது)/i.test(t)){d.setDate(d.getDate()-2);return fmtD2(d)}
+  var nm=t.match(/(\d+)\s*(?:days?|நாட்கள?)\s*(?:ago|முன்)/i);
+  if(nm){d.setDate(d.getDate()-parseInt(nm[1]));return fmtD2(d)}
+  if(/(?:last\s+week|கடந்த\s*வாரம்)/i.test(t)){d.setDate(d.getDate()-7);return fmtD2(d)}
+  var dayMap={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,ஞாயிறு:0,ஞாயிற்றுக்கிழமை:0,திங்கள்:1,திங்களன்று:1,செவ்வாய்:2,செவ்வாய்க்கிழமை:2,புதன்:3,புதன்கிழமை:3,வியாழன்:4,வியாழக்கிழமை:4,வெள்ளி:5,வெள்ளிக்கிழமை:5,சனி:6,சனிக்கிழமை:6};
+  var lm=t.match(/(?:last|கடந்த)\s+(\S+)/i);
+  if(lm){var dn=lm[1].toLowerCase().replace(/[.，,]/g,'');if(dayMap[dn]!==undefined){var tgt=dayMap[dn],cur=d.getDay(),diff=cur-tgt;if(diff<=0)diff+=7;d.setDate(d.getDate()-diff);return fmtD2(d)}}
+  var sd=t.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+  if(sd){if(sd[1].length===4)return sd[1]+'-'+sd[2].padStart(2,'0')+'-'+sd[3].padStart(2,'0');var y=sd[3].length===2?'20'+sd[3]:sd[3];return y+'-'+sd[2].padStart(2,'0')+'-'+sd[1].padStart(2,'0')}
+  return null;
+}
+
+function fmtD2(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+function extractDesc(txt,amt){
+  var desc=txt.replace(amt.f,' ').trim();
+  desc=desc.replace(/\b(?:today|yesterday|day\s+before\s+yesterday|last\s+\w+|ago|\d+\s*days?\s*ago|last\s+week|இன்று|நேற்று|நாள்\s*முன்பு|முன்தினம்|கடந்த\s*\S+|வாரம்|முன்னது)\b/gi,' ');
+  desc=desc.replace(/\b(?:it\s+)?cost(?:ed)?|spent|paid|rupees?|Rs\.?|ரூபாய்?|ரூ|செலவானது|செலுத்தினேன்|கட்டினேன்|ஆனது|ஆனால்|for|and|then|also|was|were|had|the|a|an|is|are|am\b/gi,' ');
+  desc=desc.replace(/\s+/g,' ').trim();
+  if(desc.length>0)desc=desc.charAt(0).toUpperCase()+desc.slice(1);
+  if(desc.length>120)desc=desc.substring(0,120);
+  return desc;
+}
+
+function detectCat(txt){
+  var t=txt.toLowerCase();
+  var cats={
+    food:['food','restaurant','hotel','lunch','dinner','breakfast','meal','cafe','coffee','tea','pizza','burger','biryani','rice','chicken','mutton','fish','snack','juice','tiffin','dosa','idli','sambar','உணவு','சாப்பாடு','சாப்பிட்டேன்','ஹோட்டல்','ஹோட்டல்ல','கஃபி','டீ','உணவடங்கள்','சாப்பாட்டு','தோசை','இட்லி','சாம்பார்','பிரியாணி','ஊறுகாய்','சிற்றுண்டி'],
+    transport:['fuel','petrol','diesel','bus','train','cab','uber','ola','auto','rickshaw','metro','ticket','parking','toll','travel','bike','car','போக்குவரத்து','பஸ்','பேருந்து','டீசல்','பெட்ரோல்','டிக்கெட்','பயணம்','ஆட்டோ','மெட்ரோ','ரயில்','பைக்','கார்','பார்க்கிங்'],
+    shopping:['shop','mall','grocery','vegetable','fruit','market','store','amazon','flipkart','cloth','shirt','pant','shoe','bag','cosmetic','ஷாப்பிங்','கடை','வாங்கு','வாங்கினேன்','காய்கறி','பழம்','சந்தை','ஆடை','சட்டை','காலணி','பை','மளிகை'],
+    bills:['bill','electricity','water','gas','wifi','internet','phone','recharge','dth','cable','charge','பில்','மின்','தண்ணீர்','வாட்டர்','இணையம்','ஃபோன்','ரீசார்ஜ்','கேபிள்','சார்ஜ்','டிடிஎச்'],
+    health:['medical','medicine','doctor','hospital','pharmacy','health','clinic','lab','test','tablet','injection','மருத்துவம்','மருந்து','மருத்துவமனை','டாக்டர்','ஆஸ்பத்திரி','சுகாதாரம்','லேப்','பரிசோதனை','மாத்திரை','ஊசி','காசு'],
+    education:['school','college','tuition','book','exam','fee','course','stationery','notebook','pen','கல்வி','பள்ளி','கல்லூரி','புத்தகம்','தேர்வு','கட்டணம்','படிப்பு','குறிப்பேடு','பேனா','பள்ளிக்கட்டணம்'],
+    entertainment:['movie','cinema','game','netflix','hotstar','subscription','party','pub','concert','theater','பொழுதுபோக்கு','சினிமா','திரைப்படம்','விளையாட்டு','நெட்ஃபிக்ஸ்','கச்சேரி','தியேட்டர்','விருந்து','கிளப்'],
+    rent:['rent','lease','house','room','flat','hostel','accommodation','வாடகை','வீடு','அறை','ஃப்ளாட்','லீஸ்','விடுதி','குடியிருப்பு']
+  };
+  for(var cat in cats){var kws=cats[cat];for(var i=0;i<kws.length;i++){if(t.includes(kws[i]))return cat}}
+  return 'other';
+}
+
+function parseBulkText(txt){
+  txt=txt.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  var lines=txt.split('\n'),results=[],lastDate=null,today=new Date();
+  for(var li=0;li<lines.length;li++){
+    var line=lines[li].trim();if(!line)continue;
+    var amts=findAmounts(line);if(amts.length===0)continue;
+    var dateRef=resolveDate(line,today);if(dateRef)lastDate=dateRef;
+    for(var ai=0;ai<amts.length;ai++){
+      results.push({amount:amts[ai].v,date:lastDate||tdy(),description:extractDesc(line,amts[ai]),category:detectCat(line)});
     }
   }
-  html+='</div>';
-
-  document.getElementById('contentArea').innerHTML=html;
+  // Carry forward dates
+  var ld=null;
+  for(var i=0;i<results.length;i++){if(results[i].date)ld=results[i].date;else if(ld)results[i].date=ld;else results[i].date=tdy()}
+  return results;
 }
 
-// Render history
-async function renderHistory(filter){
-  var expenses=await dbGetAll('expenses');
-  expenses.sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0)});
-
-  if(filter){
-    var f=filter.toLowerCase();
-    expenses=expenses.filter(function(e){
-      var cat=getCat(e.category);
-      return (e.description||'').toLowerCase().includes(f)||cat.label.toLowerCase().includes(f)||(e.amount+'').includes(f);
-    });
+function renderBulkReview(){
+  var pv=document.getElementById('bulkTxtPv');
+  if(bulkTxtData.length===0){pv.style.display='none';document.getElementById('bulkTxtImp').style.display='none';return}
+  pv.style.display='block';
+  var h='<h3 style="font-size:14px;margin:10px 0 6px">மதிப்பாய்வு / Review ('+bulkTxtData.length+' expenses)</h3>';
+  h+='<div style="max-height:300px;overflow-y:auto"><table class="rt"><tr><th>தேதி<br>Date</th><th>வகை<br>Cat</th><th>தொகை<br>₹</th><th>விவரம்<br>Desc</th><th></th></tr>';
+  for(var i=0;i<bulkTxtData.length;i++){
+    var r=bulkTxtData[i],opts='';
+    for(var j=0;j<CATS.length;j++)opts+='<option value="'+CATS[j].id+'"'+(r.category===CATS[j].id?' selected':'')+'>'+CATS[j].e+' '+CATS[j].l+'</option>';
+    h+='<tr>';
+    h+='<td><input type="date" value="'+r.date+'" onchange="bulkTxtData['+i+'].date=this.value"></td>';
+    h+='<td><select onchange="bulkTxtData['+i+'].category=this.value">'+opts+'</select></td>';
+    h+='<td><input type="number" value="'+r.amount+'" onchange="bulkTxtData['+i+'].amount=parseFloat(this.value)||0"></td>';
+    h+='<td><input type="text" value="'+escH(r.description)+'" onchange="bulkTxtData['+i+'].description=this.value"></td>';
+    h+='<td><button class="rbd" onclick="bulkTxtData.splice('+i+',1);renderBulkReview()">×</button></td>';
+    h+='</tr>';
   }
+  h+='</table></div>';
+  var total=0;for(var i=0;i<bulkTxtData.length;i++)total+=bulkTxtData[i].amount;
+  h+='<p style="font-size:12px;color:#666;margin:6px 0">மொத்தம் / Total: <b style="color:#C4553A">₹'+total.toLocaleString()+'</b></p>';
+  pv.innerHTML=h;
+  document.getElementById('bulkTxtImp').style.display='block';
+}
 
-  var html='<input type="text" class="search-bar" id="searchInput" placeholder="Search expenses..." value="'+(filter||'')+'">';
-  if(expenses.length===0){
-    html+='<div class="empty-state"><div class="big">📋</div><p>'+(filter?'No matching expenses':'No expenses yet. Tap + to add one.')+'</p></div>';
-  } else {
-    for(var i=0;i<expenses.length;i++){
-      var e=expenses[i];
-      var cat=getCat(e.category);
-      html+='<div class="expense-item"><span class="emoji">'+cat.emoji+'</span><div class="info"><div class="desc">'+(e.description||cat.label)+'</div><div class="meta">'+fmtDate(e.date)+' · '+cat.label+'</div></div><span class="amt">₹'+e.amount.toLocaleString()+'</span><button class="del" data-id="'+e.id+'">×</button></div>';
+document.getElementById('bulkTxtParse').onclick=function(){
+  var txt=document.getElementById('bulkTxt').value.trim();
+  if(!txt){toast('உரையை உள்ளிடவும் / Paste some text');return}
+  bulkTxtData=parseBulkText(txt);
+  if(bulkTxtData.length===0){toast('தொகைகள் எதுவும் கண்டறியப்படவில்லை / No amounts found');return}
+  renderBulkReview();
+  toast(bulkTxtData.length+' செலவுகள் கண்டறியப்பட்டன');
+};
+
+document.getElementById('bulkTxtImp').onclick=async function(){
+  var count=0;
+  for(var i=0;i<bulkTxtData.length;i++){
+    var r=bulkTxtData[i];if(!r.amount||r.amount<=0)continue;
+    await dbP({id:'exp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6)+'_'+i,amount:r.amount,category:r.category,description:r.description,date:r.date,createdAt:Date.now()+i},'expenses');
+    count++;
+  }
+  document.getElementById('bulkTxtM').classList.remove('active');
+  toast(count+' செலவுகள் சேமிக்கப்பட்டன / Saved!');
+  switchTab(curTab);
+};
+
+document.getElementById('bulkTxtCl').onclick=function(){document.getElementById('bulkTxtM').classList.remove('active')};
+
+// ========== BULK CSV ==========
+document.getElementById('dlTpl').onclick=function(){
+  var csv='date,category,amount,description\n2025-01-15,food,500,Lunch at hotel\n2025-01-15,transport,30,Bus fare\n2025-01-14,shopping,1200,Groceries\n2025-01-13,bills,800,Electricity bill\n2025-01-15,health,350,Doctor fee\n';
+  var b=new Blob([csv],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='expense_template.csv';a.click();toast('டெம்ப்ளேட் பதிவிறக்கம்');
+};
+
+document.getElementById('bulkCsvF').onchange=function(){
+  var f=this.files[0];if(!f)return;
+  var rd=new FileReader();rd.onload=function(e){
+    var lines=e.target.result.split('\n').map(function(l){return l.trim()}).filter(function(l){return l});
+    if(lines.length<2){toast('தரவு இல்லை');return}
+    var vc={};for(var i=0;i<CATS.length;i++)vc[CATS[i].id]=true;
+    bulkCsvData=[];var errs=0;
+    for(var i=1;i<lines.length;i++){
+      var cols=lines[i].split(',').map(function(c){return c.trim()});if(cols.length<3){errs++;continue}
+      var date=cols[0],cat=cols[1].toLowerCase(),amt=parseFloat(cols[2]),desc=cols[3]||'';
+      var re='';
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date))re+='தேதி பிழை. ';
+      if(!vc[cat])re+='வகை பிழை. ';
+      if(isNaN(amt)||amt<=0)re+='தொகை பிழை. ';
+      bulkCsvData.push({date:date,category:cat,amount:amt,description:desc,error:re||null});
     }
-  }
-  document.getElementById('contentArea').innerHTML=html;
+    var pv=document.getElementById('bulkCsvPv');pv.style.display='block';
+    var h='<h3 style="font-size:13px;margin:8px 0">'+bulkCsvData.length+' rows</h3><div style="max-height:150px;overflow-y:auto"><table class="rt"><tr><th>Date</th><th>Cat</th><th>₹</th><th>Desc</th><th></th></tr>';
+    for(var i=0;i<bulkCsvData.length;i++){var r=bulkCsvData[i],c=gC(r.category);h+='<tr><td>'+r.date+'</td><td>'+c.e+' '+c.l+'</td><td>₹'+r.amount+'</td><td>'+(r.description||'-')+'</td><td>'+(r.error?'<span style="color:#C4553A;font-size:10px">✗</span>':'<span style="color:#2A9D8F;font-size:10px">✓</span>')+'</td></tr>'}
+    h+='</table></div>';
+    pv.innerHTML=h;
+    var vc2=bulkCsvData.filter(function(r){return!r.error}).length;
+    document.getElementById('bulkCsvImp').style.display=vc2>0?'block':'none';
+  };rd.readAsText(f);
+};
 
-  var si=document.getElementById('searchInput');
-  if(si){
-    si.oninput=function(){
-      renderHistory(this.value);
-    };
-  }
+document.getElementById('bulkCsvImp').onclick=async function(){
+  var valid=bulkCsvData.filter(function(r){return!r.error}),count=0;
+  for(var i=0;i<valid.length;i++){var r=valid[i];await dbP({id:'exp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6)+'_c'+i,amount:r.amount,category:r.category,description:r.description,date:r.date,createdAt:Date.now()+i},'expenses');count++}
+  document.getElementById('bulkCsvM').classList.remove('active');toast(count+' CSV செலவுகள் சேமிக்கப்பட்டன');switchTab(curTab);
+};
 
-  var delBtns=document.querySelectorAll('.expense-item .del');
-  for(var i=0;i<delBtns.length;i++){
-    delBtns[i].onclick=function(){
-      var id=this.getAttribute('data-id');
-      showConfirm('Delete Expense','Are you sure you want to delete this expense?',function(){
-        dbDel(id,'expenses').then(function(){
-          toast('Expense deleted');
-          renderHistory();
-        });
-      });
-    };
-  }
+document.getElementById('bulkCsvCl').onclick=function(){document.getElementById('bulkCsvM').classList.remove('active')};
+
+// ========== ADD EXPENSE ==========
+async function saveExp(){
+  var amt=parseFloat(document.getElementById('eA').value),desc=document.getElementById('eD').value.trim(),dt=document.getElementById('eDt').value;
+  if(!amt||amt<=0){toast('தொகை உள்ளிடவும்');return}if(!dt){toast('தேதி தேர்வு செய்யவும்');return}
+  await dbP({id:'exp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6),amount:amt,category:selCat,description:desc,date:dt,createdAt:Date.now()},'expenses');
+  document.getElementById('addM').classList.remove('active');
+  document.getElementById('eA').value='';document.getElementById('eD').value='';document.getElementById('eDt').value=tdy();
+  selCat='food';buildCG();toast('சேமிக்கப்பட்டது');switchTab(curTab);
 }
 
-// Render settings
-async function renderSettings(){
-  var profile=await dbGet('profile','app');
-  var count=(await dbGetAll('expenses')).length;
-  var html='<div class="stat-card"><h3>Profile</h3><div class="settings-row"><span>Name</span><span style="font-weight:600">'+(profile?profile.name:'-')+'</span></div><div class="settings-row"><span>Total Expenses</span><span style="font-weight:600;color:#C4553A">'+count+'</span></div></div>';
-  html+='<div class="settings-card"><h3>Data</h3><p>Export your data as a JSON file for backup.</p><button class="btn btn-primary" id="exportBtn" style="max-width:100%">Export JSON</button></div>';
-  html+='<div class="settings-card"><h3>Import Data</h3><p>Restore from a previously exported JSON file.</p><input type="file" id="importFile" accept=".json" style="margin-bottom:12px;width:100%"><button class="btn btn-primary" id="importBtn" style="max-width:100%">Import JSON</button></div>';
-  html+='<div class="settings-card"><h3>Change Password</h3><div class="form-group"><label>Current Password</label><input type="password" id="curPass"></div><div class="form-group"><label>New Password</label><input type="password" id="newPass"></div><button class="btn btn-primary" id="changePassBtn" style="max-width:100%">Change Password</button></div>';
-  html+='<div class="settings-card"><h3>Danger Zone</h3><p>Delete all expenses and reset the app.</p><button class="btn" id="dangerBtn" style="width:100%;background:#C4553A;color:#fff">Delete All Data</button></div>';
-  document.getElementById('contentArea').innerHTML=html;
-
-  document.getElementById('exportBtn').onclick=async function(){
-    var data=await dbGetAll('expenses');
-    var blob=new Blob([JSON.stringify({version:'1.0',exportedAt:new Date().toISOString(),expenses:data},null,2)],{type:'application/json'});
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download='expense_diary_'+todayStr()+'.json';
-    a.click();
-    toast('Exported successfully');
-  };
-
-  document.getElementById('importBtn').onclick=function(){
-    var file=document.getElementById('importFile').files[0];
-    if(!file){toast('Select a file first');return}
-    var reader=new FileReader();
-    reader.onload=async function(e){
-      try{
-        var data=JSON.parse(e.target.result);
-        if(!data.expenses){toast('Invalid file format');return}
-        for(var i=0;i<data.expenses.length;i++){
-          await dbPut(data.expenses[i],'expenses');
-        }
-        toast('Imported '+data.expenses.length+' expenses');
-        renderSettings();
-      }catch(err){toast('Failed to parse file');}
-    };
-    reader.readAsText(file);
-  };
-
-  document.getElementById('changePassBtn').onclick=async function(){
-    var cur=document.getElementById('curPass').value;
-    var nw=document.getElementById('newPass').value;
-    if(!cur||!nw){toast('Fill both fields');return}
-    if(nw.length<4){toast('New password must be at least 4 characters');return}
-    var profile=await dbGet('profile','app');
-    var hash=await sha256(cur);
-    if(hash!==profile.passwordHash){toast('Current password is wrong');return}
-    profile.passwordHash=await sha256(nw);
-    await dbPut(profile,'app');
-    toast('Password changed');
-  };
-
-  document.getElementById('dangerBtn').onclick=function(){
-    showConfirm('Delete All Data','This will delete ALL your expenses and reset the app. This cannot be undone.',async function(){
-      var expenses=await dbGetAll('expenses');
-      for(var i=0;i<expenses.length;i++){await dbDel(expenses[i].id,'expenses')}
-      await dbDel('profile','app');
-      toast('All data deleted');
-      showScreen('setupScreen');
-    });
-  };
-}
-
-// Tab switching
-function switchTab(tab){
-  currentTab=tab;
-  var tabs=document.querySelectorAll('.tab');
-  for(var i=0;i<tabs.length;i++){
-    tabs[i].classList.toggle('active',tabs[i].getAttribute('data-tab')===tab);
-  }
-  if(tab==='dashboard')renderDashboard();
-  else if(tab==='history')renderHistory();
-  else if(tab==='settings')renderSettings();
-}
-
-// Save expense
-async function saveExpense(){
-  var amount=parseFloat(document.getElementById('expAmount').value);
-  var desc=document.getElementById('expDesc').value.trim();
-  var date=document.getElementById('expDate').value;
-
-  if(!amount||amount<=0){toast('Enter a valid amount');return}
-  if(!date){toast('Select a date');return}
-
-  var expense={
-    id:'exp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
-    amount:amount,
-    category:selectedCat,
-    description:desc,
-    date:date,
-    createdAt:Date.now()
-  };
-
-  await dbPut(expense,'expenses');
-  document.getElementById('addModal').classList.remove('active');
-  document.getElementById('expAmount').value='';
-  document.getElementById('expDesc').value='';
-  document.getElementById('expDate').value=todayStr();
-  selectedCat='food';
-  buildCatGrid();
-  toast('Expense saved');
-  switchTab(currentTab);
-}
-
-// INIT
+// ========== INIT ==========
 async function init(){
   try{
-    var profile=await dbGet('profile','app');
-    // Hide splash after 1.5s
-    setTimeout(function(){
-      if(!profile){
-        showScreen('setupScreen');
-      } else {
-        showScreen('loginScreen');
-      }
-    },1500);
-
-    // Setup button
-    document.getElementById('setupBtn').onclick=async function(){
-      var name=document.getElementById('setupName').value.trim();
-      var pass=document.getElementById('setupPass').value;
-      var pass2=document.getElementById('setupPass2').value;
-      document.getElementById('setupErr').style.display='none';
-      document.getElementById('setupErr2').style.display='none';
-
-      if(!name){toast('Enter your name');return}
-      if(pass.length<4){document.getElementById('setupErr').style.display='block';return}
-      if(pass!==pass2){document.getElementById('setupErr2').style.display='block';return}
-
-      var hash=await sha256(pass);
-      await dbPut({key:'profile',name:name,passwordHash:hash,createdAt:Date.now()},'app');
-      toast('Account created!');
-      showScreen('mainScreen');
-      switchTab('dashboard');
+    var pr=await dbG('profile','app');
+    setTimeout(function(){if(!pr)showS('setupScreen');else showS('loginScreen')},1500);
+    document.getElementById('sB').onclick=async function(){
+      var nm=document.getElementById('sN').value.trim(),pw=document.getElementById('sP').value,pw2=document.getElementById('sP2').value;
+      document.getElementById('sE1').style.display='none';document.getElementById('sE2').style.display='none';
+      if(!nm){toast('பெயர் உள்ளிடவும்');return}if(pw.length<4){document.getElementById('sE1').style.display='block';return}if(pw!==pw2){document.getElementById('sE2').style.display='block';return}
+      await dbP({key:'profile',name:nm,passwordHash:await sha(pw),createdAt:Date.now()},'app');toast('கணக்கை உருவாக்கியது!');showS('mainScreen');switchTab('dashboard');
     };
-
-    // Login button
-    document.getElementById('loginBtn').onclick=async function(){
-      var pass=document.getElementById('loginPass').value;
-      document.getElementById('loginErr').style.display='none';
-      if(!pass){toast('Enter password');return}
-      var profile=await dbGet('profile','app');
-      var hash=await sha256(pass);
-      if(hash!==profile.passwordHash){document.getElementById('loginErr').style.display='block';return}
-      document.getElementById('loginPass').value='';
-      showScreen('mainScreen');
-      switchTab('dashboard');
+    document.getElementById('lB').onclick=async function(){
+      var pw=document.getElementById('lP').value;document.getElementById('lE').style.display='none';
+      if(!pw){toast('கடவுச்சொல் உள்ளிடவும்');return}
+      var pr=await dbG('profile','app');if((await sha(pw))!==pr.passwordHash){document.getElementById('lE').style.display='block';return}
+      document.getElementById('lP').value='';showS('mainScreen');switchTab('dashboard');
     };
-
-    // Enter key on login
-    document.getElementById('loginPass').onkeydown=function(e){
-      if(e.key==='Enter')document.getElementById('loginBtn').click();
-    };
-
-    // Reset button
-    document.getElementById('resetBtn').onclick=function(){
-      showConfirm('Reset Everything','Delete all data and start fresh?',async function(){
-        var expenses=await dbGetAll('expenses');
-        for(var i=0;i<expenses.length;i++){await dbDel(expenses[i].id,'expenses')}
-        await dbDel('profile','app');
-        toast('Reset complete');
-        showScreen('setupScreen');
-      });
-    };
-
-    // Tabs
-    var tabs=document.querySelectorAll('.tab');
-    for(var i=0;i<tabs.length;i++){
-      tabs[i].onclick=function(){switchTab(this.getAttribute('data-tab'))};
-    }
-
-    // FAB
-    document.getElementById('fabBtn').onclick=function(){
-      document.getElementById('expDate').value=todayStr();
-      selectedCat='food';
-      buildCatGrid();
-      document.getElementById('addModal').classList.add('active');
-    };
-
-    // Save expense
-    document.getElementById('saveExpBtn').onclick=saveExpense;
-
-    // Cancel expense
-    document.getElementById('cancelExpBtn').onclick=function(){
-      document.getElementById('addModal').classList.remove('active');
-    };
-
-    // Confirm modal buttons
-    document.getElementById('confirmYes').onclick=function(){
-      document.getElementById('confirmModal').classList.remove('active');
-      if(confirmCb)confirmCb();
-      confirmCb=null;
-    };
-    document.getElementById('confirmNo').onclick=function(){
-      document.getElementById('confirmModal').classList.remove('active');
-      confirmCb=null;
-    };
-
-    // Register service worker
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('./sw.js').catch(function(err){
-        console.log('SW registration failed:',err);
-      });
-    }
-
-  }catch(err){
-    debug('Init error: '+err.message);
-  }
+    document.getElementById('lP').onkeydown=function(e){if(e.key==='Enter')document.getElementById('lB').click()};
+    document.getElementById('rB').onclick=function(){showCf('மீட்டமை / Reset','அனைத்து தரவையும் அழிக்கவா?',async function(){var ex=await dbA('expenses');for(var i=0;i<ex.length;i++)await dbD(ex[i].id,'expenses');await dbD('profile','app');toast('மீட்டமைக்கப்பட்டது');showS('setupScreen')})};
+    var tabs=document.querySelectorAll('.tab');for(var i=0;i<tabs.length;i++)tabs[i].onclick=function(){switchTab(this.getAttribute('data-tab'))};
+    document.getElementById('fab').onclick=function(){document.getElementById('eDt').value=tdy();selCat='food';buildCG();document.getElementById('addM').classList.add('active')};
+    document.getElementById('svB').onclick=saveExp;
+    document.getElementById('cnB').onclick=function(){document.getElementById('addM').classList.remove('active')};
+    document.getElementById('cfY').onclick=function(){document.getElementById('cfM').classList.remove('active');if(cfCb)cfCb();cfCb=null};
+    document.getElementById('cfN').onclick=function(){document.getElementById('cfM').classList.remove('active');cfCb=null};
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(function(e){console.log('SW:',e)});
+  }catch(err){dbg('Init: '+err.message)}
 }
-
 init();
 </script>
 </body>
